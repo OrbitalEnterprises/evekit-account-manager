@@ -1,0 +1,45 @@
+package enterprises.orbital.evekit.admin;
+
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.SequenceGenerator;
+import javax.persistence.Table;
+
+/**
+ * This class is used to provide unique sequence values for non-ID columns in other tables. A one-to-one relation in the referring table is all that is needed
+ * to use the value, then extraction via the getter to retrieve the value. Not great given the number of selects, but it's hard to avoid this currently with
+ * Hibernate and still be general across many databases.
+ */
+@Entity
+@Table(name = "evekit_sequence")
+public class GeneralSequenceNumber {
+  @Id
+  @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "ek_seq")
+  @SequenceGenerator(name = "ek_seq", initialValue = 100000, allocationSize = 10)
+  private long value;
+
+  public long getValue() {
+    return value;
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + (int) (value ^ (value >>> 32));
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) return true;
+    if (obj == null) return false;
+    if (getClass() != obj.getClass()) return false;
+    GeneralSequenceNumber other = (GeneralSequenceNumber) obj;
+    if (value != other.value) return false;
+    return true;
+  }
+
+}
