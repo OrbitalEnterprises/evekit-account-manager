@@ -60,6 +60,10 @@ public abstract class SyncTracker {
   // No-args ctor required by Objectify
   public SyncTracker() {}
 
+  public long getTid() {
+    return tid;
+  }
+
   public SynchronizedEveAccount getOwner() {
     return account;
   }

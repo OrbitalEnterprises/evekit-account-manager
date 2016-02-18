@@ -1,4 +1,4 @@
-package enterprises.orbital.evekit.admin;
+package enterprises.orbital.evekit.account;
 
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;

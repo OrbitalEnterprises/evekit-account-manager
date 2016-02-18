@@ -29,7 +29,6 @@ import enterprises.orbital.base.OrbitalProperties;
 import enterprises.orbital.base.Stamper;
 import enterprises.orbital.db.ConnectionFactory.RunInTransaction;
 import enterprises.orbital.db.ConnectionFactory.RunInVoidTransaction;
-import enterprises.orbital.evekit.admin.GeneralSequenceNumber;
 
 /**
  * Instances of this data object control REST access to synchronized data. There can be many keys associated with a given synchronized account. Each key may

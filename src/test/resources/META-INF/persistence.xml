@@ -11,7 +11,7 @@
         </description>
         
         <class>enterprises.orbital.db.DBProperty</class>
-        <class>enterprises.orbital.evekit.admin.GeneralSequenceNumber</class>
+        <class>enterprises.orbital.evekit.account.GeneralSequenceNumber</class>
         <class>enterprises.orbital.evekit.account.EveKitUserAccount</class>
         <class>enterprises.orbital.evekit.account.EveKitUserAuthSource</class>
         <class>enterprises.orbital.evekit.account.SynchronizedAccountAccessKey</class>
