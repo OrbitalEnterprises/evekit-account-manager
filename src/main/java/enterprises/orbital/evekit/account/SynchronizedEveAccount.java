@@ -214,7 +214,6 @@ public class SynchronizedEveAccount {
     result = prime * result + ((eveCorporationName == null) ? 0 : eveCorporationName.hashCode());
     result = prime * result + eveKey;
     result = prime * result + ((eveVCode == null) ? 0 : eveVCode.hashCode());
-    result = prime * result + (int) (lastSynchronized ^ (lastSynchronized >>> 32));
     result = prime * result + (int) (markedForDelete ^ (markedForDelete >>> 32));
     result = prime * result + ((name == null) ? 0 : name.hashCode());
     result = prime * result + ((userAccount == null) ? 0 : userAccount.hashCode());
@@ -243,7 +242,6 @@ public class SynchronizedEveAccount {
     if (eveVCode == null) {
       if (other.eveVCode != null) return false;
     } else if (!eveVCode.equals(other.eveVCode)) return false;
-    if (lastSynchronized != other.lastSynchronized) return false;
     if (markedForDelete != other.markedForDelete) return false;
     if (name == null) {
       if (other.name != null) return false;

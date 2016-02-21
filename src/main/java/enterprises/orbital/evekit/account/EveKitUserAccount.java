@@ -227,7 +227,7 @@ public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<Str
 
   @Override
   public boolean isDisabled() {
-    return active;
+    return !active;
   }
 
   @Override

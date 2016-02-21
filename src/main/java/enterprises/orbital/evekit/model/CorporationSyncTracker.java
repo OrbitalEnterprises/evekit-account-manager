@@ -15,7 +15,6 @@ import java.util.logging.Logger;
 import javax.persistence.Entity;
 import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
-import javax.persistence.NoResultException;
 import javax.persistence.Table;
 import javax.persistence.TypedQuery;
 
@@ -32,13 +31,7 @@ import enterprises.orbital.evekit.account.SynchronizedEveAccount;
 @Table(name = "evekit_corp_sync")
 @NamedQueries({
     @NamedQuery(name = "CorporationSyncTracker.get", query = "SELECT c FROM CorporationSyncTracker c where c.account = :account and c.syncStart = :start"),
-    @NamedQuery(
-        name = "CorporationSyncTracker.getUnfinished",
-        query = "SELECT c FROM CorporationSyncTracker c where c.account = :account and c.finished = false"),
     @NamedQuery(name = "CorporationSyncTracker.getAllUnfinished", query = "SELECT c FROM CorporationSyncTracker c where c.finished = false"),
-    @NamedQuery(
-        name = "CorporationSyncTracker.getLatestFinished",
-        query = "SELECT c FROM CorporationSyncTracker c where c.account = :account and c.finished = true order by c.syncEnd desc"),
     @NamedQuery(
         name = "CorporationSyncTracker.getHistory",
         query = "SELECT c FROM CorporationSyncTracker c where c.account = :account and c.finished = true and c.syncStart < :start order by c.syncStart desc"),
@@ -1192,25 +1185,9 @@ public class CorporationSyncTracker extends SyncTracker {
     return null;
   }
 
+  @SuppressWarnings("unchecked")
   public static CorporationSyncTracker getUnfinishedTracker(final SynchronizedEveAccount syncAccount) {
-    try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<CorporationSyncTracker>() {
-        @Override
-        public CorporationSyncTracker run() throws Exception {
-          TypedQuery<CorporationSyncTracker> getter = EveKitUserAccountProvider.getFactory().getEntityManager()
-              .createNamedQuery("CorporationSyncTracker.getUnfinished", CorporationSyncTracker.class);
-          getter.setParameter("account", syncAccount);
-          try {
-            return getter.getSingleResult();
-          } catch (NoResultException e) {
-            return null;
-          }
-        }
-      });
-    } catch (Exception e) {
-      log.log(Level.SEVERE, "query error", e);
-    }
-    return null;
+    return SyncTracker.<CorporationSyncTracker> getUnfinishedTracker(syncAccount);
   }
 
   public static List<CorporationSyncTracker> getAllUnfinishedTrackers() {
@@ -1229,25 +1206,9 @@ public class CorporationSyncTracker extends SyncTracker {
     return null;
   }
 
+  @SuppressWarnings("unchecked")
   public static CorporationSyncTracker getLatestFinishedTracker(final SynchronizedEveAccount owner) {
-    try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<CorporationSyncTracker>() {
-        @Override
-        public CorporationSyncTracker run() throws Exception {
-          TypedQuery<CorporationSyncTracker> getter = EveKitUserAccountProvider.getFactory().getEntityManager()
-              .createNamedQuery("CorporationSyncTracker.getLatestFinished", CorporationSyncTracker.class);
-          getter.setParameter("account", owner);
-          try {
-            return getter.getSingleResult();
-          } catch (NoResultException e) {
-            return null;
-          }
-        }
-      });
-    } catch (Exception e) {
-      log.log(Level.SEVERE, "query error", e);
-    }
-    return null;
+    return SyncTracker.<CorporationSyncTracker> getLatestFinishedTracker(owner);
   }
 
   public static List<CorporationSyncTracker> getHistory(final SynchronizedEveAccount owner, final Long contid, final int maxResults) throws IOException {

@@ -16,8 +16,12 @@ import javax.persistence.Inheritance;
 import javax.persistence.InheritanceType;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.NamedQueries;
+import javax.persistence.NamedQuery;
+import javax.persistence.NoResultException;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
+import javax.persistence.TypedQuery;
 
 import enterprises.orbital.base.OrbitalProperties;
 import enterprises.orbital.db.ConnectionFactory.RunInTransaction;
@@ -32,6 +36,12 @@ import enterprises.orbital.evekit.account.SynchronizedEveAccount;
 @Table(name = "evekit_sync", indexes = {
     @Index(name = "accountIndex", columnList = "aid", unique = false), @Index(name = "finishedIndex", columnList = "aid, finished", unique = false),
     @Index(name = "syncEndIndex", columnList = "aid, syncEnd", unique = false),
+})
+@NamedQueries({
+    @NamedQuery(name = "SyncTracker.getUnfinished", query = "SELECT c FROM SyncTracker c where c.account = :account and c.finished = false"), @NamedQuery(
+        name = "SyncTracker.getLatestFinished",
+        query = "SELECT c FROM SyncTracker c where c.account = :account and c.finished = true order by c.syncEnd desc"),
+
 })
 public abstract class SyncTracker {
   private static final Logger log = Logger.getLogger(SyncTracker.class.getName());
@@ -162,11 +172,11 @@ public abstract class SyncTracker {
     counter.incrementAndGet();
   }
 
-  public static SyncTracker finishTracker(final SyncTracker tracker) {
+  public static <A extends SyncTracker> A finishTracker(final A tracker) {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<SyncTracker>() {
+      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<A>() {
         @Override
-        public SyncTracker run() throws Exception {
+        public A run() throws Exception {
           tracker.setFinished(true);
           tracker.setSyncEnd(OrbitalProperties.getCurrentTime());
           return EveKitUserAccountProvider.getFactory().getEntityManager().merge(tracker);
@@ -184,6 +194,50 @@ public abstract class SyncTracker {
         @Override
         public A run() throws Exception {
           return EveKitUserAccountProvider.getFactory().getEntityManager().merge(tracker);
+        }
+      });
+    } catch (Exception e) {
+      log.log(Level.SEVERE, "query error", e);
+    }
+    return null;
+  }
+
+  public static <A extends SyncTracker> A getUnfinishedTracker(final SynchronizedEveAccount syncAccount) {
+    try {
+      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<A>() {
+        @SuppressWarnings("unchecked")
+        @Override
+        public A run() throws Exception {
+          TypedQuery<SyncTracker> getter = EveKitUserAccountProvider.getFactory().getEntityManager().createNamedQuery("SyncTracker.getUnfinished",
+                                                                                                                      SyncTracker.class);
+          getter.setParameter("account", syncAccount);
+          try {
+            return (A) getter.getSingleResult();
+          } catch (NoResultException e) {
+            return null;
+          }
+        }
+      });
+    } catch (Exception e) {
+      log.log(Level.SEVERE, "query error", e);
+    }
+    return null;
+  }
+
+  public static <A extends SyncTracker> A getLatestFinishedTracker(final SynchronizedEveAccount owner) {
+    try {
+      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<A>() {
+        @SuppressWarnings("unchecked")
+        @Override
+        public A run() throws Exception {
+          TypedQuery<SyncTracker> getter = EveKitUserAccountProvider.getFactory().getEntityManager().createNamedQuery("SyncTracker.getLatestFinished",
+                                                                                                                      SyncTracker.class);
+          getter.setParameter("account", owner);
+          try {
+            return (A) getter.getSingleResult();
+          } catch (NoResultException e) {
+            return null;
+          }
         }
       });
     } catch (Exception e) {
