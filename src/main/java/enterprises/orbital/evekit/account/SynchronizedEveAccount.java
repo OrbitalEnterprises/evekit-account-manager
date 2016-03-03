@@ -19,19 +19,39 @@ import javax.persistence.Table;
 import javax.persistence.Transient;
 import javax.persistence.TypedQuery;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import enterprises.orbital.base.OrbitalProperties;
 import enterprises.orbital.db.ConnectionFactory.RunInTransaction;
 import enterprises.orbital.db.ConnectionFactory.RunInVoidTransaction;
 import enterprises.orbital.evekit.model.SyncTracker;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 
 /**
  * Synchronized EVE account.
  */
 @Entity
-@Table(name = "evekit_sync_accounts", indexes = {
-    @Index(name = "accountIndex", columnList = "uid", unique = false), @Index(name = "nameIndex", columnList = "name", unique = false),
-    @Index(name = "autoIndex", columnList = "autoSynchronized", unique = false),
-    @Index(name = "deleteableIndex", columnList = "markedForDelete", unique = false),
+@Table(
+    name = "evekit_sync_accounts",
+    indexes = {
+        @Index(
+            name = "accountIndex",
+            columnList = "uid",
+            unique = false),
+        @Index(
+            name = "nameIndex",
+            columnList = "name",
+            unique = false),
+        @Index(
+            name = "autoIndex",
+            columnList = "autoSynchronized",
+            unique = false),
+        @Index(
+            name = "deleteableIndex",
+            columnList = "markedForDelete",
+            unique = false),
 })
 @NamedQueries({
     @NamedQuery(
@@ -49,36 +69,93 @@ import enterprises.orbital.evekit.model.SyncTracker;
     @NamedQuery(
         name = "SynchronizedEveAccount.findByAcct",
         query = "SELECT c FROM SynchronizedEveAccount c where c.userAccount = :account and c.markedForDelete = -1"),
-    @NamedQuery(name = "SynchronizedEveAccount.findByAcctIncludeMarked", query = "SELECT c FROM SynchronizedEveAccount c where c.userAccount = :account"),
-    @NamedQuery(name = "SynchronizedEveAccount.findAllMarkedForDelete", query = "SELECT c FROM SynchronizedEveAccount c where c.markedForDelete > -1"),
+    @NamedQuery(
+        name = "SynchronizedEveAccount.findByAcctIncludeMarked",
+        query = "SELECT c FROM SynchronizedEveAccount c where c.userAccount = :account"),
+    @NamedQuery(
+        name = "SynchronizedEveAccount.findAllMarkedForDelete",
+        query = "SELECT c FROM SynchronizedEveAccount c where c.markedForDelete > -1"),
     @NamedQuery(
         name = "SynchronizedEveAccount.findAllAutoSync",
         query = "SELECT c FROM SynchronizedEveAccount c where c.autoSynchronized = true and c.markedForDelete = -1"),
-    @NamedQuery(name = "SynchronizedEveAccount.findAllAutoSyncIncludeMarked", query = "SELECT c FROM SynchronizedEveAccount c where c.autoSynchronized = true"),
+    @NamedQuery(
+        name = "SynchronizedEveAccount.findAllAutoSyncIncludeMarked",
+        query = "SELECT c FROM SynchronizedEveAccount c where c.autoSynchronized = true"),
+})
+@ApiModel(
+    description = "EveKit synchronized account")
+@JsonIgnoreProperties({
+    "userAccount"
 })
 public class SynchronizedEveAccount {
   private static final Logger log              = Logger.getLogger(SynchronizedEveAccount.class.getName());
 
   @Id
-  @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "ek_seq")
-  @SequenceGenerator(name = "ek_seq", initialValue = 100000, allocationSize = 10)
+  @GeneratedValue(
+      strategy = GenerationType.SEQUENCE,
+      generator = "ek_seq")
+  @SequenceGenerator(
+      name = "ek_seq",
+      initialValue = 100000,
+      allocationSize = 10)
+  @ApiModelProperty(
+      value = "Unique account ID")
+  @JsonProperty("aid")
   protected long              aid;
   @ManyToOne
-  @JoinColumn(name = "uid", referencedColumnName = "uid")
+  @JoinColumn(
+      name = "uid",
+      referencedColumnName = "uid")
   private EveKitUserAccount   userAccount;
+  @ApiModelProperty(
+      value = "Date (milliseconds UTC) when this account was created")
+  @JsonProperty("created")
   private long                created          = -1;
+  @ApiModelProperty(
+      value = "Account name")
+  @JsonProperty("name")
   private String              name;
+  @ApiModelProperty(
+      value = "True if this is a character account, false for a corporation account")
+  @JsonProperty("characterType")
   private boolean             characterType;
+  @ApiModelProperty(
+      value = "True if this account will auto-synchronize")
+  @JsonProperty("autoSynchronized")
   private boolean             autoSynchronized;
+  @ApiModelProperty(
+      value = "EVE XML API access key")
+  @JsonProperty("eveKey")
   private int                 eveKey;
+  @ApiModelProperty(
+      value = "EVE XML API access vcode")
+  @JsonProperty("eveVCode")
   private String              eveVCode;
+  @ApiModelProperty(
+      value = "Character ID to use for accessing the EVE XML API")
+  @JsonProperty("eveCharacterID")
   private long                eveCharacterID;
+  @ApiModelProperty(
+      value = "Character name of character used for access")
+  @JsonProperty("eveCharacterName")
   private String              eveCharacterName;
+  @ApiModelProperty(
+      value = "Corporation ID of character used for access")
+  @JsonProperty("eveCorporationID")
   private long                eveCorporationID;
+  @ApiModelProperty(
+      value = "Corporation Name of character used for access")
+  @JsonProperty("eveCorporationName")
   private String              eveCorporationName;
   @Transient
+  @ApiModelProperty(
+      value = "Date (milliseconds UTC) when this account was last synchronized")
+  @JsonProperty("lastSynchronized")
   private long                lastSynchronized = -1;
   // -1 if not marked for delete, otherwise expected delete time
+  @ApiModelProperty(
+      value = "If greater than 0, then the date (milliseconds UTC) when this account was marked for deletion")
+  @JsonProperty("markedForDelete")
   private long                markedForDelete  = -1;
 
   public SynchronizedEveAccount() {}
@@ -100,7 +177,8 @@ public class SynchronizedEveAccount {
     return userAccount;
   }
 
-  public void setUserAccount(EveKitUserAccount o) {
+  public void setUserAccount(
+                             EveKitUserAccount o) {
     userAccount = o;
   }
 
@@ -116,7 +194,8 @@ public class SynchronizedEveAccount {
     return name;
   }
 
-  public void setName(String name) {
+  public void setName(
+                      String name) {
     this.name = name;
   }
 
@@ -124,7 +203,8 @@ public class SynchronizedEveAccount {
     return characterType;
   }
 
-  public void setCharacterType(boolean characterType) {
+  public void setCharacterType(
+                               boolean characterType) {
     this.characterType = characterType;
   }
 
@@ -132,7 +212,8 @@ public class SynchronizedEveAccount {
     return autoSynchronized;
   }
 
-  public void setAutoSynchronized(boolean autoSynchronized) {
+  public void setAutoSynchronized(
+                                  boolean autoSynchronized) {
     this.autoSynchronized = autoSynchronized;
   }
 
@@ -140,7 +221,8 @@ public class SynchronizedEveAccount {
     return eveKey;
   }
 
-  public void setEveKey(int eveKey) {
+  public void setEveKey(
+                        int eveKey) {
     this.eveKey = eveKey;
   }
 
@@ -148,7 +230,8 @@ public class SynchronizedEveAccount {
     return eveVCode;
   }
 
-  public void setEveVCode(String eveVCode) {
+  public void setEveVCode(
+                          String eveVCode) {
     this.eveVCode = eveVCode;
   }
 
@@ -156,7 +239,8 @@ public class SynchronizedEveAccount {
     return eveCharacterID;
   }
 
-  public void setEveCharacterID(long eveCharacterID) {
+  public void setEveCharacterID(
+                                long eveCharacterID) {
     this.eveCharacterID = eveCharacterID;
   }
 
@@ -164,7 +248,8 @@ public class SynchronizedEveAccount {
     return eveCharacterName;
   }
 
-  public void setEveCharacterName(String eveCharacterName) {
+  public void setEveCharacterName(
+                                  String eveCharacterName) {
     this.eveCharacterName = eveCharacterName;
   }
 
@@ -172,7 +257,8 @@ public class SynchronizedEveAccount {
     return eveCorporationID;
   }
 
-  public void setEveCorporationID(long eveCorporationID) {
+  public void setEveCorporationID(
+                                  long eveCorporationID) {
     this.eveCorporationID = eveCorporationID;
   }
 
@@ -180,7 +266,8 @@ public class SynchronizedEveAccount {
     return eveCorporationName;
   }
 
-  public void setEveCorporationName(String eveCorporationName) {
+  public void setEveCorporationName(
+                                    String eveCorporationName) {
     this.eveCorporationName = eveCorporationName;
   }
 
@@ -188,7 +275,8 @@ public class SynchronizedEveAccount {
     return lastSynchronized;
   }
 
-  public void setLastSynchronized(long lastSynchronized) {
+  public void setLastSynchronized(
+                                  long lastSynchronized) {
     this.lastSynchronized = lastSynchronized;
   }
 
@@ -196,7 +284,8 @@ public class SynchronizedEveAccount {
     return markedForDelete;
   }
 
-  public void setMarkedForDelete(long markedForDelete) {
+  public void setMarkedForDelete(
+                                 long markedForDelete) {
     this.markedForDelete = markedForDelete;
   }
 
@@ -221,7 +310,8 @@ public class SynchronizedEveAccount {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(
+                        Object obj) {
     if (this == obj) return true;
     if (obj == null) return false;
     if (getClass() != obj.getClass()) return false;
@@ -292,7 +382,10 @@ public class SynchronizedEveAccount {
     return newAccount;
   }
 
-  public static SynchronizedEveAccount getSynchronizedAccount(final EveKitUserAccount owner, final String name, final boolean includeMarkedForDelete) {
+  public static SynchronizedEveAccount getSynchronizedAccount(
+                                                              final EveKitUserAccount owner,
+                                                              final String name,
+                                                              final boolean includeMarkedForDelete) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<SynchronizedEveAccount>() {
         @Override
@@ -315,7 +408,10 @@ public class SynchronizedEveAccount {
     return null;
   }
 
-  public static SynchronizedEveAccount getSynchronizedAccount(final EveKitUserAccount owner, final long id, final boolean includeMarkedForDelete) {
+  public static SynchronizedEveAccount getSynchronizedAccount(
+                                                              final EveKitUserAccount owner,
+                                                              final long id,
+                                                              final boolean includeMarkedForDelete) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<SynchronizedEveAccount>() {
         @Override
@@ -338,7 +434,9 @@ public class SynchronizedEveAccount {
     return null;
   }
 
-  public static List<SynchronizedEveAccount> getAllAccounts(final EveKitUserAccount owner, final boolean includeMarkedForDelete) {
+  public static List<SynchronizedEveAccount> getAllAccounts(
+                                                            final EveKitUserAccount owner,
+                                                            final boolean includeMarkedForDelete) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<List<SynchronizedEveAccount>>() {
         @Override
@@ -356,42 +454,48 @@ public class SynchronizedEveAccount {
     return null;
   }
 
-  public static void deleteAccount(final EveKitUserAccount owner, final long id) {
+  public static SynchronizedEveAccount deleteAccount(
+                                                     final EveKitUserAccount owner,
+                                                     final long id) {
     try {
-      EveKitUserAccountProvider.getFactory().runTransaction(new RunInVoidTransaction() {
+      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<SynchronizedEveAccount>() {
         @Override
-        public void run() throws Exception {
+        public SynchronizedEveAccount run() throws Exception {
           SynchronizedEveAccount acct = getSynchronizedAccount(owner, id, false);
           if (acct == null) {
             log.warning("Account not found for marking, ignoring: owner=" + owner + " id=" + id);
-            return;
+            return null;
           }
           acct.setMarkedForDelete(OrbitalProperties.getCurrentTime());
-          EveKitUserAccountProvider.getFactory().getEntityManager().merge(acct);
+          return EveKitUserAccountProvider.getFactory().getEntityManager().merge(acct);
         }
       });
     } catch (Exception e) {
       log.log(Level.SEVERE, "query error", e);
     }
+    return null;
   }
 
-  public static void restoreAccount(final EveKitUserAccount owner, final long id) {
+  public static SynchronizedEveAccount restoreAccount(
+                                                      final EveKitUserAccount owner,
+                                                      final long id) {
     try {
-      EveKitUserAccountProvider.getFactory().runTransaction(new RunInVoidTransaction() {
+      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<SynchronizedEveAccount>() {
         @Override
-        public void run() throws Exception {
+        public SynchronizedEveAccount run() throws Exception {
           SynchronizedEveAccount acct = getSynchronizedAccount(owner, id, true);
           if (acct == null) {
             log.warning("Account not found for restoring, ignoring: owner=" + owner + " id=" + id);
-            return;
+            return null;
           }
           acct.setMarkedForDelete(-1);
-          EveKitUserAccountProvider.getFactory().getEntityManager().merge(acct);
+          return EveKitUserAccountProvider.getFactory().getEntityManager().merge(acct);
         }
       });
     } catch (Exception e) {
       log.log(Level.SEVERE, "query error", e);
     }
+    return null;
   }
 
   public static void updateAccount(
@@ -414,7 +518,7 @@ public class SynchronizedEveAccount {
           // No change if account with requested name does not exist
           SynchronizedEveAccount result = getSynchronizedAccount(owner, id, false);
           if (result == null) return null;
-          if (!name.equals(name)) {
+          if (!name.equals(result.getName())) {
             // If account name is changing, then verify account with new name does not already exist
             SynchronizedEveAccount check = getSynchronizedAccount(owner, name, true);
             if (check != null) return new AccountCreationException("Account with target name \"" + name + "\" already exists");
@@ -438,7 +542,8 @@ public class SynchronizedEveAccount {
     if (result != null) throw result;
   }
 
-  public static List<SynchronizedEveAccount> getAllAutoSyncAccounts(final boolean includeMarkedForDelete) {
+  public static List<SynchronizedEveAccount> getAllAutoSyncAccounts(
+                                                                    final boolean includeMarkedForDelete) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<List<SynchronizedEveAccount>>() {
         @Override
@@ -471,7 +576,8 @@ public class SynchronizedEveAccount {
     return null;
   }
 
-  public static void remove(final SynchronizedEveAccount toRemove) {
+  public static void remove(
+                            final SynchronizedEveAccount toRemove) {
     try {
       // Remove Sync Trackers
       // Set of sync trackers could be quite large so we remove those in batches
@@ -519,6 +625,21 @@ public class SynchronizedEveAccount {
       log.log(Level.SEVERE, "query error", e);
     }
 
+  }
+
+  public static SynchronizedEveAccount update(
+                                              final SynchronizedEveAccount data) {
+    try {
+      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<SynchronizedEveAccount>() {
+        @Override
+        public SynchronizedEveAccount run() throws Exception {
+          return EveKitUserAccountProvider.getFactory().getEntityManager().merge(data);
+        }
+      });
+    } catch (Exception e) {
+      log.log(Level.SEVERE, "query error", e);
+    }
+    return null;
   }
 
 }

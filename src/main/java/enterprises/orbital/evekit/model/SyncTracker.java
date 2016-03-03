@@ -23,25 +23,54 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.TypedQuery;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import enterprises.orbital.base.OrbitalProperties;
 import enterprises.orbital.db.ConnectionFactory.RunInTransaction;
 import enterprises.orbital.evekit.account.EveKitUserAccountProvider;
 import enterprises.orbital.evekit.account.SynchronizedEveAccount;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 
 /**
  * Generic indexer class for any synchronizations in progress.
  */
 @Entity
-@Inheritance(strategy = InheritanceType.JOINED)
-@Table(name = "evekit_sync", indexes = {
-    @Index(name = "accountIndex", columnList = "aid", unique = false), @Index(name = "finishedIndex", columnList = "aid, finished", unique = false),
-    @Index(name = "syncEndIndex", columnList = "aid, syncEnd", unique = false),
+@Inheritance(
+    strategy = InheritanceType.JOINED)
+@Table(
+    name = "evekit_sync",
+    indexes = {
+        @Index(
+            name = "accountIndex",
+            columnList = "aid",
+            unique = false),
+        @Index(
+            name = "finishedIndex",
+            columnList = "aid, finished",
+            unique = false),
+        @Index(
+            name = "syncEndIndex",
+            columnList = "aid, syncEnd",
+            unique = false),
 })
 @NamedQueries({
-    @NamedQuery(name = "SyncTracker.getUnfinished", query = "SELECT c FROM SyncTracker c where c.account = :account and c.finished = false"), @NamedQuery(
+    @NamedQuery(
+        name = "SyncTracker.get",
+        query = "SELECT c FROM SyncTracker c where c.account = :account and c.tid = :tid"),
+    @NamedQuery(
+        name = "SyncTracker.getUnfinished",
+        query = "SELECT c FROM SyncTracker c where c.account = :account and c.finished = false"),
+    @NamedQuery(
         name = "SyncTracker.getLatestFinished",
         query = "SELECT c FROM SyncTracker c where c.account = :account and c.finished = true order by c.syncEnd desc"),
 
+})
+@ApiModel(
+    description = "Synchronization tracker base attributes")
+@JsonIgnoreProperties({
+    "account"
 })
 public abstract class SyncTracker {
   private static final Logger log = Logger.getLogger(SyncTracker.class.getName());
@@ -57,14 +86,33 @@ public abstract class SyncTracker {
   }
 
   @Id
-  @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "ek_seq")
-  @SequenceGenerator(name = "ek_seq", initialValue = 100000, allocationSize = 10)
+  @GeneratedValue(
+      strategy = GenerationType.SEQUENCE,
+      generator = "ek_seq")
+  @SequenceGenerator(
+      name = "ek_seq",
+      initialValue = 100000,
+      allocationSize = 10)
+  @ApiModelProperty(
+      value = "Uniquer tracker ID")
+  @JsonProperty("tid")
   protected long                   tid;
   @ManyToOne
-  @JoinColumn(name = "aid", referencedColumnName = "aid")
+  @JoinColumn(
+      name = "aid",
+      referencedColumnName = "aid")
   protected SynchronizedEveAccount account;
+  @ApiModelProperty(
+      value = "Tracker start time (milliseconds UTC)")
+  @JsonProperty("syncStart")
   protected long                   syncStart = -1;
+  @ApiModelProperty(
+      value = "True if this tracker has been completed")
+  @JsonProperty("finished")
   protected boolean                finished;
+  @ApiModelProperty(
+      value = "Tracker end time (milliseconds UTC)")
+  @JsonProperty("syncEnd")
   protected long                   syncEnd   = -1;
 
   // No-args ctor required by Objectify
@@ -82,7 +130,8 @@ public abstract class SyncTracker {
     return finished;
   }
 
-  public void setFinished(boolean finished) {
+  public void setFinished(
+                          boolean finished) {
     this.finished = finished;
   }
 
@@ -90,7 +139,8 @@ public abstract class SyncTracker {
     return syncStart;
   }
 
-  public void setSyncStart(long syncStart) {
+  public void setSyncStart(
+                           long syncStart) {
     this.syncStart = syncStart;
   }
 
@@ -98,16 +148,20 @@ public abstract class SyncTracker {
     return syncEnd;
   }
 
-  public void setSyncEnd(long syncEnd) {
+  public void setSyncEnd(
+                         long syncEnd) {
     this.syncEnd = syncEnd;
   }
 
   /**
    * Either return the first SynchronizationState still to be completed, or return null if this tracker is complete.
    * 
+   * @param checkState
+   *          the set of tracker states to check this tracker against.
    * @return the first SynchronizationState yet to be completed, or null if this tracker is complete.
    */
-  public SynchronizationState trackerComplete(Set<SynchronizationState> checkState) {
+  public SynchronizationState trackerComplete(
+                                              Set<SynchronizationState> checkState) {
     return null;
   }
 
@@ -121,7 +175,10 @@ public abstract class SyncTracker {
    * @param msg
    *          the new detail message for the given state.
    */
-  public void setState(SynchronizationState state, SyncTracker.SyncState status, String msg) {
+  public void setState(
+                       SynchronizationState state,
+                       SyncTracker.SyncState status,
+                       String msg) {
     // NOP
   }
 
@@ -138,7 +195,8 @@ public abstract class SyncTracker {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(
+                        Object obj) {
     if (this == obj) return true;
     if (obj == null) return false;
     if (getClass() != obj.getClass()) return false;
@@ -158,7 +216,10 @@ public abstract class SyncTracker {
     return "SyncTracker [tid=" + tid + ", account=" + account + ", syncStart=" + syncStart + ", finished=" + finished + ", syncEnd=" + syncEnd + "]";
   }
 
-  public static void incrementSummary(String cat, String reason, Map<String, Map<String, AtomicInteger>> summary) {
+  public static void incrementSummary(
+                                      String cat,
+                                      String reason,
+                                      Map<String, Map<String, AtomicInteger>> summary) {
     Map<String, AtomicInteger> category = summary.get(cat);
     if (category == null) {
       category = new HashMap<String, AtomicInteger>();
@@ -172,7 +233,8 @@ public abstract class SyncTracker {
     counter.incrementAndGet();
   }
 
-  public static <A extends SyncTracker> A finishTracker(final A tracker) {
+  public static <A extends SyncTracker> A finishTracker(
+                                                        final A tracker) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<A>() {
         @Override
@@ -188,7 +250,8 @@ public abstract class SyncTracker {
     return null;
   }
 
-  public static <A extends SyncTracker> A updateTracker(final A tracker) {
+  public static <A extends SyncTracker> A updateTracker(
+                                                        final A tracker) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<A>() {
         @Override
@@ -202,7 +265,32 @@ public abstract class SyncTracker {
     return null;
   }
 
-  public static <A extends SyncTracker> A getUnfinishedTracker(final SynchronizedEveAccount syncAccount) {
+  public static <A extends SyncTracker> A get(
+                                              final SynchronizedEveAccount syncAccount,
+                                              final long tid) {
+    try {
+      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<A>() {
+        @SuppressWarnings("unchecked")
+        @Override
+        public A run() throws Exception {
+          TypedQuery<SyncTracker> getter = EveKitUserAccountProvider.getFactory().getEntityManager().createNamedQuery("SyncTracker.get", SyncTracker.class);
+          getter.setParameter("account", syncAccount);
+          getter.setParameter("tid", tid);
+          try {
+            return (A) getter.getSingleResult();
+          } catch (NoResultException e) {
+            return null;
+          }
+        }
+      });
+    } catch (Exception e) {
+      log.log(Level.SEVERE, "query error", e);
+    }
+    return null;
+  }
+
+  public static <A extends SyncTracker> A getUnfinishedTracker(
+                                                               final SynchronizedEveAccount syncAccount) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<A>() {
         @SuppressWarnings("unchecked")
@@ -224,7 +312,8 @@ public abstract class SyncTracker {
     return null;
   }
 
-  public static <A extends SyncTracker> A getLatestFinishedTracker(final SynchronizedEveAccount owner) {
+  public static <A extends SyncTracker> A getLatestFinishedTracker(
+                                                                   final SynchronizedEveAccount owner) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<A>() {
         @SuppressWarnings("unchecked")

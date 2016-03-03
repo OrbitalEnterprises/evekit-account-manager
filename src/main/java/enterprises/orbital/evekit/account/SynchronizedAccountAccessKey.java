@@ -1,5 +1,6 @@
 package enterprises.orbital.evekit.account;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -8,6 +9,7 @@ import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -25,10 +27,20 @@ import javax.persistence.Table;
 import javax.persistence.Transient;
 import javax.persistence.TypedQuery;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 import enterprises.orbital.base.OrbitalProperties;
 import enterprises.orbital.base.Stamper;
 import enterprises.orbital.db.ConnectionFactory.RunInTransaction;
 import enterprises.orbital.db.ConnectionFactory.RunInVoidTransaction;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 
 /**
  * Instances of this data object control REST access to synchronized data. There can be many keys associated with a given synchronized account. Each key may
@@ -44,16 +56,40 @@ import enterprises.orbital.db.ConnectionFactory.RunInVoidTransaction;
  * </ol>
  */
 @Entity
-@Table(name = "evekit_access_keys", indexes = {
-    @Index(name = "accountIndex", columnList = "aid", unique = false), @Index(name = "accessKeyIndex", columnList = "accessKey", unique = true),
-    @Index(name = "keyNameIndex", columnList = "keyName", unique = false)
+@Table(
+    name = "evekit_access_keys",
+    indexes = {
+        @Index(
+            name = "accountIndex",
+            columnList = "aid",
+            unique = false),
+        @Index(
+            name = "accessKeyIndex",
+            columnList = "accessKey",
+            unique = true),
+        @Index(
+            name = "keyNameIndex",
+            columnList = "keyName",
+            unique = false)
 })
 @NamedQueries({
     @NamedQuery(
         name = "SynchronizedAccountAccessKey.findByAcctAndName",
         query = "SELECT c FROM SynchronizedAccountAccessKey c where c.account = :account and c.keyName = :name"),
-    @NamedQuery(name = "SynchronizedAccountAccessKey.findAllByAcct", query = "SELECT c FROM SynchronizedAccountAccessKey c where c.account = :account"),
-    @NamedQuery(name = "SynchronizedAccountAccessKey.findByAccessKey", query = "SELECT c FROM SynchronizedAccountAccessKey c where c.accessKey = :accesskey"),
+    @NamedQuery(
+        name = "SynchronizedAccountAccessKey.findByAcctAndID",
+        query = "SELECT c FROM SynchronizedAccountAccessKey c where c.account = :account and c.kid = :kid"),
+    @NamedQuery(
+        name = "SynchronizedAccountAccessKey.findAllByAcct",
+        query = "SELECT c FROM SynchronizedAccountAccessKey c where c.account = :account"),
+    @NamedQuery(
+        name = "SynchronizedAccountAccessKey.findByAccessKey",
+        query = "SELECT c FROM SynchronizedAccountAccessKey c where c.accessKey = :accesskey"),
+})
+@ApiModel(
+    description = "EveKit synchronized account access key")
+@JsonIgnoreProperties({
+    "account", "randomSeed", "accessMask"
 })
 public class SynchronizedAccountAccessKey {
   protected static final Logger            log      = Logger.getLogger(SynchronizedAccountAccessKey.class.getName());
@@ -68,43 +104,95 @@ public class SynchronizedAccountAccessKey {
                                                       }
                                                     };
 
+  public static class BigIntegerSerializer extends JsonSerializer<BigInteger> {
+    @Override
+    public void serialize(
+                          BigInteger value,
+                          JsonGenerator jgen,
+                          SerializerProvider provider) throws IOException, JsonProcessingException {
+      jgen.writeString(value.toString());
+    }
+  };
+
   // Unique key ID
   @Id
-  @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "ek_seq")
-  @SequenceGenerator(name = "ek_seq", initialValue = 100000, allocationSize = 10)
-  protected long                           kid;
+  @GeneratedValue(
+      strategy = GenerationType.SEQUENCE,
+      generator = "ek_seq")
+  @SequenceGenerator(
+      name = "ek_seq",
+      initialValue = 100000,
+      allocationSize = 10)
+  @ApiModelProperty(
+      value = "Unique key ID")
+  @JsonProperty("kid")
+  protected long                 kid;
   // Account which owns this key
   @ManyToOne
-  @JoinColumn(name = "aid", referencedColumnName = "aid")
-  private SynchronizedEveAccount           account;
+  @JoinColumn(
+      name = "aid",
+      referencedColumnName = "aid")
+  private SynchronizedEveAccount account;
   // User readable name of this key. This should be unique for all keys on the same SynchronizedEveAccount.
-  private String                           keyName;
+  @ApiModelProperty(
+      value = "Key name")
+  @JsonProperty("keyName")
+  private String                 keyName;
   // Integer key ID. This is unique across all keys maintained by EveKit.
   @OneToOne
-  @JoinColumn(name = "accessKey", referencedColumnName = "value")
-  private GeneralSequenceNumber            accessKey;
+  @JoinColumn(
+      name = "accessKey",
+      referencedColumnName = "value")
+  @ApiModelProperty(
+      value = "Access key")
+  @JsonProperty("accessKey")
+  private GeneralSequenceNumber  accessKey;
   // Fixed at the time this key is created, we use this field to randomize the hash.
-  private long                             randomSeed;
+  private long                   randomSeed;
   // -1 for a key which never expires, otherwise this is the time in UTC when the given key will expire.
-  private long                             expiry   = -1;
+  @ApiModelProperty(
+      value = "-1 if this key never expires, otherwise the date (milliseconds UTC) when this key expires")
+  @JsonProperty("expiry")
+  private long                   expiry = -1;
   // -1 for an unlimited key, otherwise this is limit time in UTC for historic queries. That is, records (e.g. wallet transactions) with a date before this
-  // time are not accessible by this key.
-  private long                             limit    = -1;
+  // time are not accessible by this key. Note that limit is a reserved word, so we need to escape it in the column
+  // definition.
+  @ApiModelProperty(
+      value = "-1 if this key is unlimited, otherwise the date (milliseconds UTC) before which data may not be accessed")
+  @JsonProperty("limit")
+  @Column(
+      name = "\"limit\"")
+  private long                   limit  = -1;
   // Mask which controls access for this key.
   @Lob
-  private byte[]                           accessMask;
+  private byte[]                 accessMask;
   // Hash computed when needed for communication to owning user.
   @Transient
-  private String                           credential;
+  @ApiModelProperty(
+      value = "Access credential")
+  @JsonProperty("credential")
+  private String                 credential;
   // Integer value of mask. Used for display purposes.
   @Transient
-  private BigInteger                       maskValue;
+  @ApiModelProperty(
+      value = "Access key mask")
+  @JsonProperty("maskValue")
+  @JsonSerialize(
+      using = BigIntegerSerializer.class)
+  private BigInteger             maskValue;
+  // String value of mask. Also used for display purposes.
+  @Transient
+  @ApiModelProperty(
+      value = "String value of access key mask")
+  @JsonProperty("maskValueString")
+  private String                 maskValueString;
 
   public SynchronizedEveAccount getSyncAccount() {
     return account;
   }
 
-  public void setSyncAccount(SynchronizedEveAccount o) {
+  public void setSyncAccount(
+                             SynchronizedEveAccount o) {
     account = o;
   }
 
@@ -116,7 +204,8 @@ public class SynchronizedAccountAccessKey {
     return keyName;
   }
 
-  public void setKeyName(String keyName) {
+  public void setKeyName(
+                         String keyName) {
     this.keyName = keyName;
   }
 
@@ -124,7 +213,8 @@ public class SynchronizedAccountAccessKey {
     return randomSeed;
   }
 
-  public void setRandomSeed(long randomSeed) {
+  public void setRandomSeed(
+                            long randomSeed) {
     this.randomSeed = randomSeed;
   }
 
@@ -132,7 +222,8 @@ public class SynchronizedAccountAccessKey {
     return expiry;
   }
 
-  public void setExpiry(long expiry) {
+  public void setExpiry(
+                        long expiry) {
     this.expiry = expiry;
   }
 
@@ -140,7 +231,8 @@ public class SynchronizedAccountAccessKey {
     return limit;
   }
 
-  public void setLimit(long limit) {
+  public void setLimit(
+                       long limit) {
     this.limit = limit;
   }
 
@@ -148,7 +240,8 @@ public class SynchronizedAccountAccessKey {
     return accessMask;
   }
 
-  public void setAccessMask(byte[] accessMask) {
+  public void setAccessMask(
+                            byte[] accessMask) {
     this.accessMask = accessMask;
   }
 
@@ -156,7 +249,8 @@ public class SynchronizedAccountAccessKey {
     return credential;
   }
 
-  public void setCredential(String credential) {
+  public void setCredential(
+                            String credential) {
     this.credential = credential;
   }
 
@@ -164,8 +258,18 @@ public class SynchronizedAccountAccessKey {
     return maskValue;
   }
 
-  public void setMaskValue(BigInteger maskValue) {
+  public void setMaskValue(
+                           BigInteger maskValue) {
     this.maskValue = maskValue;
+  }
+
+  public String getMaskValueString() {
+    return maskValueString;
+  }
+
+  public void setMaskValueString(
+                                 String maskValueString) {
+    this.maskValueString = maskValueString;
   }
 
   @Override
@@ -180,13 +284,13 @@ public class SynchronizedAccountAccessKey {
     result = prime * result + ((keyName == null) ? 0 : keyName.hashCode());
     result = prime * result + (int) (kid ^ (kid >>> 32));
     result = prime * result + (int) (limit ^ (limit >>> 32));
-    result = prime * result + ((maskValue == null) ? 0 : maskValue.hashCode());
     result = prime * result + (int) (randomSeed ^ (randomSeed >>> 32));
     return result;
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(
+                        Object obj) {
     if (this == obj) return true;
     if (obj == null) return false;
     if (getClass() != obj.getClass()) return false;
@@ -207,9 +311,6 @@ public class SynchronizedAccountAccessKey {
     } else if (!keyName.equals(other.keyName)) return false;
     if (kid != other.kid) return false;
     if (limit != other.limit) return false;
-    if (maskValue == null) {
-      if (other.maskValue != null) return false;
-    } else if (!maskValue.equals(other.maskValue)) return false;
     if (randomSeed != other.randomSeed) return false;
     return true;
   }
@@ -218,7 +319,7 @@ public class SynchronizedAccountAccessKey {
   public String toString() {
     return "SynchronizedAccountAccessKey [kid=" + kid + ", account=" + account + ", keyName=" + keyName + ", accessKey=" + accessKey + ", randomSeed="
         + randomSeed + ", expiry=" + expiry + ", limit=" + limit + ", accessMask=" + Arrays.toString(accessMask) + ", credential=" + credential + ", maskValue="
-        + maskValue + "]";
+        + maskValue + ", maskValueString=" + maskValueString + "]";
   }
 
   /**
@@ -236,6 +337,8 @@ public class SynchronizedAccountAccessKey {
    * @param accessMask
    *          the access mask for this key.
    * @return the newly created key, or null if a key with the given name already exists.
+   * @throws AccessKeyCreationException
+   *           if a key with the given name already exists for this account.
    */
   public static SynchronizedAccountAccessKey createKey(
                                                        final SynchronizedEveAccount accountKey,
@@ -270,7 +373,9 @@ public class SynchronizedAccountAccessKey {
     return newKey;
   }
 
-  public static SynchronizedAccountAccessKey getKeyByOwnerAndName(final SynchronizedEveAccount owner, final String name) {
+  public static SynchronizedAccountAccessKey getKeyByOwnerAndName(
+                                                                  final SynchronizedEveAccount owner,
+                                                                  final String name) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<SynchronizedAccountAccessKey>() {
         @Override
@@ -292,7 +397,32 @@ public class SynchronizedAccountAccessKey {
     return null;
   }
 
-  public static SynchronizedAccountAccessKey getKeyByAccessKey(final long accessKey) {
+  public static SynchronizedAccountAccessKey getKeyByOwnerAndID(
+                                                                final SynchronizedEveAccount owner,
+                                                                final long kid) {
+    try {
+      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<SynchronizedAccountAccessKey>() {
+        @Override
+        public SynchronizedAccountAccessKey run() throws Exception {
+          TypedQuery<SynchronizedAccountAccessKey> getter = EveKitUserAccountProvider.getFactory().getEntityManager()
+              .createNamedQuery("SynchronizedAccountAccessKey.findByAcctAndID", SynchronizedAccountAccessKey.class);
+          getter.setParameter("account", owner);
+          getter.setParameter("kid", kid);
+          try {
+            return getter.getSingleResult();
+          } catch (NoResultException e) {
+            return null;
+          }
+        }
+      });
+    } catch (Exception e) {
+      log.log(Level.SEVERE, "query error", e);
+    }
+    return null;
+  }
+
+  public static SynchronizedAccountAccessKey getKeyByAccessKey(
+                                                               final long accessKey) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<SynchronizedAccountAccessKey>() {
         @Override
@@ -313,7 +443,8 @@ public class SynchronizedAccountAccessKey {
     return null;
   }
 
-  public static List<SynchronizedAccountAccessKey> getAllKeys(final SynchronizedEveAccount owner) {
+  public static List<SynchronizedAccountAccessKey> getAllKeys(
+                                                              final SynchronizedEveAccount owner) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<List<SynchronizedAccountAccessKey>>() {
         @Override
@@ -330,7 +461,9 @@ public class SynchronizedAccountAccessKey {
     return null;
   }
 
-  public static void deleteKey(final SynchronizedEveAccount owner, final String name) {
+  public static boolean deleteKey(
+                                  final SynchronizedEveAccount owner,
+                                  final String name) {
     try {
       EveKitUserAccountProvider.getFactory().runTransaction(new RunInVoidTransaction() {
         @Override
@@ -339,9 +472,29 @@ public class SynchronizedAccountAccessKey {
           if (key != null) EveKitUserAccountProvider.getFactory().getEntityManager().remove(key);
         }
       });
+      return true;
     } catch (Exception e) {
       log.log(Level.SEVERE, "query error", e);
     }
+    return false;
+  }
+
+  public static boolean deleteKey(
+                                  final SynchronizedEveAccount owner,
+                                  final long kid) {
+    try {
+      EveKitUserAccountProvider.getFactory().runTransaction(new RunInVoidTransaction() {
+        @Override
+        public void run() throws Exception {
+          SynchronizedAccountAccessKey key = getKeyByOwnerAndID(owner, kid);
+          if (key != null) EveKitUserAccountProvider.getFactory().getEntityManager().remove(key);
+        }
+      });
+      return true;
+    } catch (Exception e) {
+      log.log(Level.SEVERE, "query error", e);
+    }
+    return false;
   }
 
   public static void updateKey(
@@ -392,7 +545,12 @@ public class SynchronizedAccountAccessKey {
     setMaskValue(value);
   }
 
-  public static String generateHash(SynchronizedAccountAccessKey ref) {
+  public void generateMaskValueString() {
+    setMaskValueString(AccountAccessMask.stringifyMask(accessMask));
+  }
+
+  public static String generateHash(
+                                    SynchronizedAccountAccessKey ref) {
     ByteBuffer assemble = assembly.get();
     assemble.clear();
 
@@ -412,7 +570,9 @@ public class SynchronizedAccountAccessKey {
     return Stamper.digest(assemble);
   }
 
-  public static SynchronizedAccountAccessKey checkHash(long keyID, String submittedHash) throws NoSuchKeyException {
+  public static SynchronizedAccountAccessKey checkHash(
+                                                       long keyID,
+                                                       String submittedHash) throws NoSuchKeyException {
     SynchronizedAccountAccessKey accessKey = getKeyByAccessKey(keyID);
 
     if (accessKey == null) {
@@ -423,7 +583,8 @@ public class SynchronizedAccountAccessKey {
     return generateHash(accessKey).equals(submittedHash) ? accessKey : null;
   }
 
-  public static void remove(final SynchronizedEveAccount acct) {
+  public static void remove(
+                            final SynchronizedEveAccount acct) {
     try {
       EveKitUserAccountProvider.getFactory().runTransaction(new RunInVoidTransaction() {
         @Override

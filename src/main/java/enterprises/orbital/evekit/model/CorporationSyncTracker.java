@@ -18,91 +18,290 @@ import javax.persistence.NamedQuery;
 import javax.persistence.Table;
 import javax.persistence.TypedQuery;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import enterprises.orbital.base.OrbitalProperties;
 import enterprises.orbital.db.ConnectionFactory.RunInTransaction;
 import enterprises.orbital.evekit.account.EveKitUserAccountProvider;
 import enterprises.orbital.evekit.account.SynchronizedEveAccount;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 
 /**
  * Object to track synchronization request for corporation. A synchronization tracker starts out empty and fills in each supported field type until it is marked
  * as finished. This makes it relatively straightforward to cache a tracker since slightly stale copies are usually harmless.
  */
 @Entity
-@Table(name = "evekit_corp_sync")
+@Table(
+    name = "evekit_corp_sync")
 @NamedQueries({
-    @NamedQuery(name = "CorporationSyncTracker.get", query = "SELECT c FROM CorporationSyncTracker c where c.account = :account and c.syncStart = :start"),
-    @NamedQuery(name = "CorporationSyncTracker.getAllUnfinished", query = "SELECT c FROM CorporationSyncTracker c where c.finished = false"),
+    @NamedQuery(
+        name = "CorporationSyncTracker.get",
+        query = "SELECT c FROM CorporationSyncTracker c where c.account = :account and c.syncStart = :start"),
+    @NamedQuery(
+        name = "CorporationSyncTracker.getAllUnfinished",
+        query = "SELECT c FROM CorporationSyncTracker c where c.finished = false"),
     @NamedQuery(
         name = "CorporationSyncTracker.getHistory",
         query = "SELECT c FROM CorporationSyncTracker c where c.account = :account and c.finished = true and c.syncStart < :start order by c.syncStart desc"),
-    @NamedQuery(name = "CorporationSyncTracker.getSummary", query = "SELECT c FROM CorporationSyncTracker c where c.finished = true and c.syncStart >= :start"),
+    @NamedQuery(
+        name = "CorporationSyncTracker.getSummary",
+        query = "SELECT c FROM CorporationSyncTracker c where c.finished = true and c.syncStart >= :start"),
 })
+@ApiModel(
+    description = "Corporation synchronization tracker entry")
 public class CorporationSyncTracker extends SyncTracker {
   private static final Logger   log = Logger.getLogger(CorporationSyncTracker.class.getName());
 
   // Status of each element we're synchronizing. If status is
   // SYNC_ERROR, then the "detail" field contains text explaining the error.
+  @ApiModelProperty(
+      value = "Account balance status")
+  @JsonProperty("accountBalanceStatus")
   private SyncTracker.SyncState accountBalanceStatus;
+  @ApiModelProperty(
+      value = "Account balance detail message")
+  @JsonProperty("accountBalanceDetail")
   private String                accountBalanceDetail;
+  @ApiModelProperty(
+      value = "Asset list status")
+  @JsonProperty("assetListStatus")
   private SyncTracker.SyncState assetListStatus;
+  @ApiModelProperty(
+      value = "Asset list detail message")
+  @JsonProperty("assetListDetail")
   private String                assetListDetail;
+  @ApiModelProperty(
+      value = "Corporation sheet status")
+  @JsonProperty("corporationSheetStatus")
   private SyncTracker.SyncState corporationSheetStatus;
+  @ApiModelProperty(
+      value = "Corporation sheet detail message")
+  @JsonProperty("corporationSheetDetail")
   private String                corporationSheetDetail;
+  @ApiModelProperty(
+      value = "Contact list status")
+  @JsonProperty("contactListStatus")
   private SyncTracker.SyncState contactListStatus;
+  @ApiModelProperty(
+      value = "Contact list detail message")
+  @JsonProperty("contactListDetail")
   private String                contactListDetail;
+  @ApiModelProperty(
+      value = "Customs office status")
+  @JsonProperty("customsOfficeStatus")
   private SyncTracker.SyncState customsOfficeStatus;
+  @ApiModelProperty(
+      value = "Customs office detail message")
+  @JsonProperty("customsOfficeDetail")
   private String                customsOfficeDetail;
+  @ApiModelProperty(
+      value = "Blueprints status")
+  @JsonProperty("blueprintsStatus")
   private SyncTracker.SyncState blueprintsStatus;
+  @ApiModelProperty(
+      value = "Blueprints detail message")
+  @JsonProperty("blueprintsDetail")
   private String                blueprintsDetail;
+  @ApiModelProperty(
+      value = "Bookmarks status")
+  @JsonProperty("bookmarksStatus")
   private SyncTracker.SyncState bookmarksStatus;
+  @ApiModelProperty(
+      value = "Bookmarks detail message")
+  @JsonProperty("bookmarksDetail")
   private String                bookmarksDetail;
+  @ApiModelProperty(
+      value = "Contracts status")
+  @JsonProperty("contractsStatus")
   private SyncTracker.SyncState contractsStatus;
+  @ApiModelProperty(
+      value = "Contracts detail message")
+  @JsonProperty("contractsDetail")
   private String                contractsDetail;
+  @ApiModelProperty(
+      value = "Contract items status")
+  @JsonProperty("contractItemsStatus")
   private SyncTracker.SyncState contractItemsStatus;
+  @ApiModelProperty(
+      value = "Contract items detail message")
+  @JsonProperty("contractItemsDetail")
   private String                contractItemsDetail;
+  @ApiModelProperty(
+      value = "Contract bids status")
+  @JsonProperty("contractBidsStatus")
   private SyncTracker.SyncState contractBidsStatus;
+  @ApiModelProperty(
+      value = "Contract bids detail message")
+  @JsonProperty("contractBidsDetail")
   private String                contractBidsDetail;
+  @ApiModelProperty(
+      value = "Faction war stats status")
+  @JsonProperty("facWarStatsStatus")
   private SyncTracker.SyncState facWarStatsStatus;
+  @ApiModelProperty(
+      value = "Faction war stats detail message")
+  @JsonProperty("facWarStatsDetail")
   private String                facWarStatsDetail;
+  @ApiModelProperty(
+      value = "Facilities status")
+  @JsonProperty("facilitiesStatus")
   private SyncTracker.SyncState facilitiesStatus;
+  @ApiModelProperty(
+      value = "Facilities detail message")
+  @JsonProperty("facilitiesDetail")
   private String                facilitiesDetail;
+  @ApiModelProperty(
+      value = "Industry jobs status")
+  @JsonProperty("industryJobsStatus")
   private SyncTracker.SyncState industryJobsStatus;
+  @ApiModelProperty(
+      value = "Industry jobs detail message")
+  @JsonProperty("industryJobsDetail")
   private String                industryJobsDetail;
+  @ApiModelProperty(
+      value = "Industry jobs history status")
+  @JsonProperty("industryJobsHistoryStatus")
   private SyncTracker.SyncState industryJobsHistoryStatus;
+  @ApiModelProperty(
+      value = "Industry jobs history detail message")
+  @JsonProperty("industryJobsHistoryDetail")
   private String                industryJobsHistoryDetail;
+  @ApiModelProperty(
+      value = "Kill log status")
+  @JsonProperty("killlogStatus")
   private SyncTracker.SyncState killlogStatus;
+  @ApiModelProperty(
+      value = "Kill log detail message")
+  @JsonProperty("killlogDetail")
   private String                killlogDetail;
+  @ApiModelProperty(
+      value = "Market orders status")
+  @JsonProperty("marketOrdersStatus")
   private SyncTracker.SyncState marketOrdersStatus;
+  @ApiModelProperty(
+      value = "Market orders detail message")
+  @JsonProperty("marketOrdersDetail")
   private String                marketOrdersDetail;
+  @ApiModelProperty(
+      value = "Member medals status")
+  @JsonProperty("memberMedalsStatus")
   private SyncTracker.SyncState memberMedalsStatus;
+  @ApiModelProperty(
+      value = "Member medals detail message")
+  @JsonProperty("memberMedalsDetail")
   private String                memberMedalsDetail;
+  @ApiModelProperty(
+      value = "Standings status")
+  @JsonProperty("standingsStatus")
   private SyncTracker.SyncState standingsStatus;
+  @ApiModelProperty(
+      value = "Standings detail message")
+  @JsonProperty("standingsDetail")
   private String                standingsDetail;
+  @ApiModelProperty(
+      value = "Wallet journal status")
+  @JsonProperty("walletJournalStatus")
   private SyncTracker.SyncState walletJournalStatus;
+  @ApiModelProperty(
+      value = "Wallet journal detail message")
+  @JsonProperty("walletJournalDetail")
   private String                walletJournalDetail;
+  @ApiModelProperty(
+      value = "Wallet transactions status")
+  @JsonProperty("walletTransactionsStatus")
   private SyncTracker.SyncState walletTransactionsStatus;
+  @ApiModelProperty(
+      value = "Wallet transactions detail message")
+  @JsonProperty("walletTransactionsDetail")
   private String                walletTransactionsDetail;
+  @ApiModelProperty(
+      value = "Member security status")
+  @JsonProperty("memberSecurityStatus")
   private SyncTracker.SyncState memberSecurityStatus;
+  @ApiModelProperty(
+      value = "Member security detail message")
+  @JsonProperty("memberSecurityDetail")
   private String                memberSecurityDetail;
+  @ApiModelProperty(
+      value = "Container log status")
+  @JsonProperty("containerLogStatus")
   private SyncTracker.SyncState containerLogStatus;
+  @ApiModelProperty(
+      value = "Container log detail message")
+  @JsonProperty("containerLogDetail")
   private String                containerLogDetail;
+  @ApiModelProperty(
+      value = "Member security log status")
+  @JsonProperty("memberSecurityLogStatus")
   private SyncTracker.SyncState memberSecurityLogStatus;
+  @ApiModelProperty(
+      value = "Member security log detail message")
+  @JsonProperty("memberSecurityLogDetail")
   private String                memberSecurityLogDetail;
+  @ApiModelProperty(
+      value = "Member tracking status")
+  @JsonProperty("memberTrackingStatus")
   private SyncTracker.SyncState memberTrackingStatus;
+  @ApiModelProperty(
+      value = "Member tracking detail message")
+  @JsonProperty("memberTrackingDetail")
   private String                memberTrackingDetail;
+  @ApiModelProperty(
+      value = "Corporation medals status")
+  @JsonProperty("corpMedalsStatus")
   private SyncTracker.SyncState corpMedalsStatus;
+  @ApiModelProperty(
+      value = "Corporation medals detail message")
+  @JsonProperty("corpMedalsDetail")
   private String                corpMedalsDetail;
+  @ApiModelProperty(
+      value = "Outpost list status")
+  @JsonProperty("outpostListStatus")
   private SyncTracker.SyncState outpostListStatus;
+  @ApiModelProperty(
+      value = "Outpost list detail message")
+  @JsonProperty("outpostListDetail")
   private String                outpostListDetail;
+  @ApiModelProperty(
+      value = "Outpost detail status")
+  @JsonProperty("outpostDetailStatus")
   private SyncTracker.SyncState outpostDetailStatus;
+  @ApiModelProperty(
+      value = "Outpost detail detail message")
+  @JsonProperty("outpostDetailDetail")
   private String                outpostDetailDetail;
+  @ApiModelProperty(
+      value = "Shareholder status")
+  @JsonProperty("shareholderStatus")
   private SyncTracker.SyncState shareholderStatus;
+  @ApiModelProperty(
+      value = "Shareholder detail message")
+  @JsonProperty("shareholderDetail")
   private String                shareholderDetail;
+  @ApiModelProperty(
+      value = "Starbase list status")
+  @JsonProperty("starbaseListStatus")
   private SyncTracker.SyncState starbaseListStatus;
+  @ApiModelProperty(
+      value = "Starbase list detail message")
+  @JsonProperty("starbaseListDetail")
   private String                starbaseListDetail;
+  @ApiModelProperty(
+      value = "Starbase detail status")
+  @JsonProperty("starbaseDetailStatus")
   private SyncTracker.SyncState starbaseDetailStatus;
+  @ApiModelProperty(
+      value = "Starbase detail detail message")
+  @JsonProperty("starbaseDetailDetail")
   private String                starbaseDetailDetail;
+  @ApiModelProperty(
+      value = "Corporation titles status")
+  @JsonProperty("corpTitlesStatus")
   private SyncTracker.SyncState corpTitlesStatus;
+  @ApiModelProperty(
+      value = "Corporation titles detail message")
+  @JsonProperty("corpTitlesDetail")
   private String                corpTitlesDetail;
 
   public CorporationSyncTracker() {
@@ -140,7 +339,10 @@ public class CorporationSyncTracker extends SyncTracker {
   }
 
   @Override
-  public void setState(SynchronizationState state, SyncTracker.SyncState status, String msg) {
+  public void setState(
+                       SynchronizationState state,
+                       SyncTracker.SyncState status,
+                       String msg) {
     switch (state) {
 
     case SYNC_CORP_ACCOUNTBALANCE:
@@ -300,7 +502,8 @@ public class CorporationSyncTracker extends SyncTracker {
   }
 
   @Override
-  public SynchronizationState trackerComplete(Set<SynchronizationState> checkState) {
+  public SynchronizationState trackerComplete(
+                                              Set<SynchronizationState> checkState) {
     for (SynchronizationState next : checkState) {
       switch (next) {
       case SYNC_CORP_ACCOUNTBALANCE:
@@ -441,51 +644,63 @@ public class CorporationSyncTracker extends SyncTracker {
     return null;
   }
 
-  public void setMemberMedalsStatus(SyncTracker.SyncState memberMedalsStatus) {
+  public void setMemberMedalsStatus(
+                                    SyncTracker.SyncState memberMedalsStatus) {
     this.memberMedalsStatus = memberMedalsStatus;
   }
 
-  public void setMemberSecurityStatus(SyncTracker.SyncState memberSecurityStatus) {
+  public void setMemberSecurityStatus(
+                                      SyncTracker.SyncState memberSecurityStatus) {
     this.memberSecurityStatus = memberSecurityStatus;
   }
 
-  public void setContainerLogStatus(SyncTracker.SyncState containerLogStatus) {
+  public void setContainerLogStatus(
+                                    SyncTracker.SyncState containerLogStatus) {
     this.containerLogStatus = containerLogStatus;
   }
 
-  public void setMemberSecurityLogStatus(SyncTracker.SyncState memberSecurityLogStatus) {
+  public void setMemberSecurityLogStatus(
+                                         SyncTracker.SyncState memberSecurityLogStatus) {
     this.memberSecurityLogStatus = memberSecurityLogStatus;
   }
 
-  public void setMemberTrackingStatus(SyncTracker.SyncState memberTrackingStatus) {
+  public void setMemberTrackingStatus(
+                                      SyncTracker.SyncState memberTrackingStatus) {
     this.memberTrackingStatus = memberTrackingStatus;
   }
 
-  public void setCorpMedalsStatus(SyncTracker.SyncState corpMedalsStatus) {
+  public void setCorpMedalsStatus(
+                                  SyncTracker.SyncState corpMedalsStatus) {
     this.corpMedalsStatus = corpMedalsStatus;
   }
 
-  public void setOutpostListStatus(SyncTracker.SyncState outpostListStatus) {
+  public void setOutpostListStatus(
+                                   SyncTracker.SyncState outpostListStatus) {
     this.outpostListStatus = outpostListStatus;
   }
 
-  public void setOutpostDetailStatus(SyncTracker.SyncState outpostDetailStatus) {
+  public void setOutpostDetailStatus(
+                                     SyncTracker.SyncState outpostDetailStatus) {
     this.outpostDetailStatus = outpostDetailStatus;
   }
 
-  public void setShareholderStatus(SyncTracker.SyncState shareholderStatus) {
+  public void setShareholderStatus(
+                                   SyncTracker.SyncState shareholderStatus) {
     this.shareholderStatus = shareholderStatus;
   }
 
-  public void setStarbaseListStatus(SyncTracker.SyncState starbaseListStatus) {
+  public void setStarbaseListStatus(
+                                    SyncTracker.SyncState starbaseListStatus) {
     this.starbaseListStatus = starbaseListStatus;
   }
 
-  public void setStarbaseDetailStatus(SyncTracker.SyncState starbaseDetailStatus) {
+  public void setStarbaseDetailStatus(
+                                      SyncTracker.SyncState starbaseDetailStatus) {
     this.starbaseDetailStatus = starbaseDetailStatus;
   }
 
-  public void setCorpTitlesStatus(SyncTracker.SyncState corpTitlesStatus) {
+  public void setCorpTitlesStatus(
+                                  SyncTracker.SyncState corpTitlesStatus) {
     this.corpTitlesStatus = corpTitlesStatus;
   }
 
@@ -493,7 +708,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return accountBalanceStatus;
   }
 
-  public void setAccountBalanceStatus(SyncTracker.SyncState accountBalanceStatus) {
+  public void setAccountBalanceStatus(
+                                      SyncTracker.SyncState accountBalanceStatus) {
     this.accountBalanceStatus = accountBalanceStatus;
   }
 
@@ -501,7 +717,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return accountBalanceDetail;
   }
 
-  public void setAccountBalanceDetail(String accountBalanceDetail) {
+  public void setAccountBalanceDetail(
+                                      String accountBalanceDetail) {
     this.accountBalanceDetail = accountBalanceDetail;
   }
 
@@ -509,7 +726,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return assetListStatus;
   }
 
-  public void setAssetListStatus(SyncTracker.SyncState assetListStatus) {
+  public void setAssetListStatus(
+                                 SyncTracker.SyncState assetListStatus) {
     this.assetListStatus = assetListStatus;
   }
 
@@ -517,7 +735,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return assetListDetail;
   }
 
-  public void setAssetListDetail(String assetListDetail) {
+  public void setAssetListDetail(
+                                 String assetListDetail) {
     this.assetListDetail = assetListDetail;
   }
 
@@ -525,7 +744,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return corporationSheetStatus;
   }
 
-  public void setCorporationSheetStatus(SyncTracker.SyncState corporationSheetStatus) {
+  public void setCorporationSheetStatus(
+                                        SyncTracker.SyncState corporationSheetStatus) {
     this.corporationSheetStatus = corporationSheetStatus;
   }
 
@@ -533,7 +753,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return corporationSheetDetail;
   }
 
-  public void setCorporationSheetDetail(String corporationSheetDetail) {
+  public void setCorporationSheetDetail(
+                                        String corporationSheetDetail) {
     this.corporationSheetDetail = corporationSheetDetail;
   }
 
@@ -541,7 +762,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return contactListStatus;
   }
 
-  public void setContactListStatus(SyncTracker.SyncState contactListStatus) {
+  public void setContactListStatus(
+                                   SyncTracker.SyncState contactListStatus) {
     this.contactListStatus = contactListStatus;
   }
 
@@ -549,7 +771,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return contactListDetail;
   }
 
-  public void setContactListDetail(String contactListDetail) {
+  public void setContactListDetail(
+                                   String contactListDetail) {
     this.contactListDetail = contactListDetail;
   }
 
@@ -557,7 +780,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return customsOfficeStatus;
   }
 
-  public void setCustomsOfficeStatus(SyncTracker.SyncState customsOfficeStatus) {
+  public void setCustomsOfficeStatus(
+                                     SyncTracker.SyncState customsOfficeStatus) {
     this.customsOfficeStatus = customsOfficeStatus;
   }
 
@@ -565,7 +789,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return customsOfficeDetail;
   }
 
-  public void setCustomsOfficeDetail(String customsOfficeDetail) {
+  public void setCustomsOfficeDetail(
+                                     String customsOfficeDetail) {
     this.customsOfficeDetail = customsOfficeDetail;
   }
 
@@ -573,7 +798,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return blueprintsStatus;
   }
 
-  public void setBlueprintsStatus(SyncTracker.SyncState blueprintsStatus) {
+  public void setBlueprintsStatus(
+                                  SyncTracker.SyncState blueprintsStatus) {
     this.blueprintsStatus = blueprintsStatus;
   }
 
@@ -581,7 +807,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return blueprintsDetail;
   }
 
-  public void setBlueprintsDetail(String blueprintsDetail) {
+  public void setBlueprintsDetail(
+                                  String blueprintsDetail) {
     this.blueprintsDetail = blueprintsDetail;
   }
 
@@ -589,7 +816,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return bookmarksStatus;
   }
 
-  public void setBookmarksStatus(SyncTracker.SyncState bookmarksStatus) {
+  public void setBookmarksStatus(
+                                 SyncTracker.SyncState bookmarksStatus) {
     this.bookmarksStatus = bookmarksStatus;
   }
 
@@ -597,7 +825,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return bookmarksDetail;
   }
 
-  public void setBookmarksDetail(String bookmarksDetail) {
+  public void setBookmarksDetail(
+                                 String bookmarksDetail) {
     this.bookmarksDetail = bookmarksDetail;
   }
 
@@ -605,7 +834,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return contractsStatus;
   }
 
-  public void setContractsStatus(SyncTracker.SyncState contractsStatus) {
+  public void setContractsStatus(
+                                 SyncTracker.SyncState contractsStatus) {
     this.contractsStatus = contractsStatus;
   }
 
@@ -613,7 +843,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return contractsDetail;
   }
 
-  public void setContractsDetail(String contractsDetail) {
+  public void setContractsDetail(
+                                 String contractsDetail) {
     this.contractsDetail = contractsDetail;
   }
 
@@ -621,7 +852,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return contractItemsStatus;
   }
 
-  public void setContractItemsStatus(SyncTracker.SyncState contractItemsStatus) {
+  public void setContractItemsStatus(
+                                     SyncTracker.SyncState contractItemsStatus) {
     this.contractItemsStatus = contractItemsStatus;
   }
 
@@ -629,7 +861,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return contractItemsDetail;
   }
 
-  public void setContractItemsDetail(String contractItemsDetail) {
+  public void setContractItemsDetail(
+                                     String contractItemsDetail) {
     this.contractItemsDetail = contractItemsDetail;
   }
 
@@ -637,7 +870,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return contractBidsStatus;
   }
 
-  public void setContractBidsStatus(SyncTracker.SyncState contractBidsStatus) {
+  public void setContractBidsStatus(
+                                    SyncTracker.SyncState contractBidsStatus) {
     this.contractBidsStatus = contractBidsStatus;
   }
 
@@ -645,7 +879,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return contractBidsDetail;
   }
 
-  public void setContractBidsDetail(String contractBidsDetail) {
+  public void setContractBidsDetail(
+                                    String contractBidsDetail) {
     this.contractBidsDetail = contractBidsDetail;
   }
 
@@ -653,7 +888,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return facWarStatsStatus;
   }
 
-  public void setFacWarStatsStatus(SyncTracker.SyncState facWarStatsStatus) {
+  public void setFacWarStatsStatus(
+                                   SyncTracker.SyncState facWarStatsStatus) {
     this.facWarStatsStatus = facWarStatsStatus;
   }
 
@@ -661,7 +897,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return facWarStatsDetail;
   }
 
-  public void setFacWarStatsDetail(String facWarStatsDetail) {
+  public void setFacWarStatsDetail(
+                                   String facWarStatsDetail) {
     this.facWarStatsDetail = facWarStatsDetail;
   }
 
@@ -669,7 +906,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return facilitiesDetail;
   }
 
-  public void setFacilitiesDetail(String facilitiesDetail) {
+  public void setFacilitiesDetail(
+                                  String facilitiesDetail) {
     this.facilitiesDetail = facilitiesDetail;
   }
 
@@ -677,7 +915,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return facilitiesStatus;
   }
 
-  public void setFacilitiesStatus(SyncTracker.SyncState facilitiesStatus) {
+  public void setFacilitiesStatus(
+                                  SyncTracker.SyncState facilitiesStatus) {
     this.facilitiesStatus = facilitiesStatus;
   }
 
@@ -685,7 +924,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return industryJobsStatus;
   }
 
-  public void setIndustryJobsStatus(SyncTracker.SyncState industryJobsStatus) {
+  public void setIndustryJobsStatus(
+                                    SyncTracker.SyncState industryJobsStatus) {
     this.industryJobsStatus = industryJobsStatus;
   }
 
@@ -693,7 +933,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return industryJobsDetail;
   }
 
-  public void setIndustryJobsDetail(String industryJobsDetail) {
+  public void setIndustryJobsDetail(
+                                    String industryJobsDetail) {
     this.industryJobsDetail = industryJobsDetail;
   }
 
@@ -701,7 +942,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return industryJobsHistoryStatus;
   }
 
-  public void setIndustryJobsHistoryStatus(SyncTracker.SyncState industryJobsHistoryStatus) {
+  public void setIndustryJobsHistoryStatus(
+                                           SyncTracker.SyncState industryJobsHistoryStatus) {
     this.industryJobsHistoryStatus = industryJobsHistoryStatus;
   }
 
@@ -709,7 +951,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return industryJobsHistoryDetail;
   }
 
-  public void setIndustryJobsHistoryDetail(String industryJobsHistoryDetail) {
+  public void setIndustryJobsHistoryDetail(
+                                           String industryJobsHistoryDetail) {
     this.industryJobsHistoryDetail = industryJobsHistoryDetail;
   }
 
@@ -717,7 +960,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return killlogStatus;
   }
 
-  public void setKilllogStatus(SyncTracker.SyncState killlogStatus) {
+  public void setKilllogStatus(
+                               SyncTracker.SyncState killlogStatus) {
     this.killlogStatus = killlogStatus;
   }
 
@@ -725,7 +969,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return killlogDetail;
   }
 
-  public void setKilllogDetail(String killlogDetail) {
+  public void setKilllogDetail(
+                               String killlogDetail) {
     this.killlogDetail = killlogDetail;
   }
 
@@ -733,7 +978,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return marketOrdersStatus;
   }
 
-  public void setMarketOrdersStatus(SyncTracker.SyncState marketOrdersStatus) {
+  public void setMarketOrdersStatus(
+                                    SyncTracker.SyncState marketOrdersStatus) {
     this.marketOrdersStatus = marketOrdersStatus;
   }
 
@@ -741,7 +987,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return marketOrdersDetail;
   }
 
-  public void setMarketOrdersDetail(String marketOrdersDetail) {
+  public void setMarketOrdersDetail(
+                                    String marketOrdersDetail) {
     this.marketOrdersDetail = marketOrdersDetail;
   }
 
@@ -749,7 +996,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return memberMedalsDetail;
   }
 
-  public void setMemberMedalsDetail(String memberMedalsDetail) {
+  public void setMemberMedalsDetail(
+                                    String memberMedalsDetail) {
     this.memberMedalsDetail = memberMedalsDetail;
   }
 
@@ -757,7 +1005,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return standingsStatus;
   }
 
-  public void setStandingsStatus(SyncTracker.SyncState standingsStatus) {
+  public void setStandingsStatus(
+                                 SyncTracker.SyncState standingsStatus) {
     this.standingsStatus = standingsStatus;
   }
 
@@ -765,7 +1014,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return standingsDetail;
   }
 
-  public void setStandingsDetail(String standingsDetail) {
+  public void setStandingsDetail(
+                                 String standingsDetail) {
     this.standingsDetail = standingsDetail;
   }
 
@@ -773,7 +1023,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return walletJournalStatus;
   }
 
-  public void setWalletJournalStatus(SyncTracker.SyncState walletJournalStatus) {
+  public void setWalletJournalStatus(
+                                     SyncTracker.SyncState walletJournalStatus) {
     this.walletJournalStatus = walletJournalStatus;
   }
 
@@ -781,7 +1032,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return walletJournalDetail;
   }
 
-  public void setWalletJournalDetail(String walletJournalDetail) {
+  public void setWalletJournalDetail(
+                                     String walletJournalDetail) {
     this.walletJournalDetail = walletJournalDetail;
   }
 
@@ -789,7 +1041,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return walletTransactionsStatus;
   }
 
-  public void setWalletTransactionsStatus(SyncTracker.SyncState walletTransactionsStatus) {
+  public void setWalletTransactionsStatus(
+                                          SyncTracker.SyncState walletTransactionsStatus) {
     this.walletTransactionsStatus = walletTransactionsStatus;
   }
 
@@ -797,7 +1050,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return walletTransactionsDetail;
   }
 
-  public void setWalletTransactionsDetail(String walletTransactionsDetail) {
+  public void setWalletTransactionsDetail(
+                                          String walletTransactionsDetail) {
     this.walletTransactionsDetail = walletTransactionsDetail;
   }
 
@@ -805,7 +1059,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return memberSecurityDetail;
   }
 
-  public void setMemberSecurityDetail(String memberSecurityDetail) {
+  public void setMemberSecurityDetail(
+                                      String memberSecurityDetail) {
     this.memberSecurityDetail = memberSecurityDetail;
   }
 
@@ -813,7 +1068,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return containerLogDetail;
   }
 
-  public void setContainerLogDetail(String containerLogDetail) {
+  public void setContainerLogDetail(
+                                    String containerLogDetail) {
     this.containerLogDetail = containerLogDetail;
   }
 
@@ -821,7 +1077,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return memberSecurityLogDetail;
   }
 
-  public void setMemberSecurityLogDetail(String memberSecurityLogDetail) {
+  public void setMemberSecurityLogDetail(
+                                         String memberSecurityLogDetail) {
     this.memberSecurityLogDetail = memberSecurityLogDetail;
   }
 
@@ -829,7 +1086,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return memberTrackingDetail;
   }
 
-  public void setMemberTrackingDetail(String memberTrackingDetail) {
+  public void setMemberTrackingDetail(
+                                      String memberTrackingDetail) {
     this.memberTrackingDetail = memberTrackingDetail;
   }
 
@@ -837,7 +1095,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return corpMedalsDetail;
   }
 
-  public void setCorpMedalsDetail(String corpMedalsDetail) {
+  public void setCorpMedalsDetail(
+                                  String corpMedalsDetail) {
     this.corpMedalsDetail = corpMedalsDetail;
   }
 
@@ -845,7 +1104,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return outpostListDetail;
   }
 
-  public void setOutpostListDetail(String outpostListDetail) {
+  public void setOutpostListDetail(
+                                   String outpostListDetail) {
     this.outpostListDetail = outpostListDetail;
   }
 
@@ -853,7 +1113,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return outpostDetailDetail;
   }
 
-  public void setOutpostDetailDetail(String outpostDetailDetail) {
+  public void setOutpostDetailDetail(
+                                     String outpostDetailDetail) {
     this.outpostDetailDetail = outpostDetailDetail;
   }
 
@@ -861,7 +1122,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return shareholderDetail;
   }
 
-  public void setShareholderDetail(String shareholderDetail) {
+  public void setShareholderDetail(
+                                   String shareholderDetail) {
     this.shareholderDetail = shareholderDetail;
   }
 
@@ -869,7 +1131,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return starbaseListDetail;
   }
 
-  public void setStarbaseListDetail(String starbaseListDetail) {
+  public void setStarbaseListDetail(
+                                    String starbaseListDetail) {
     this.starbaseListDetail = starbaseListDetail;
   }
 
@@ -877,7 +1140,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return starbaseDetailDetail;
   }
 
-  public void setStarbaseDetailDetail(String starbaseDetailDetail) {
+  public void setStarbaseDetailDetail(
+                                      String starbaseDetailDetail) {
     this.starbaseDetailDetail = starbaseDetailDetail;
   }
 
@@ -885,7 +1149,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return corpTitlesDetail;
   }
 
-  public void setCorpTitlesDetail(String corpTitlesDetail) {
+  public void setCorpTitlesDetail(
+                                  String corpTitlesDetail) {
     this.corpTitlesDetail = corpTitlesDetail;
   }
 
@@ -1033,7 +1298,8 @@ public class CorporationSyncTracker extends SyncTracker {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(
+                        Object obj) {
     if (this == obj) return true;
     if (!super.equals(obj)) return false;
     if (getClass() != obj.getClass()) return false;
@@ -1165,7 +1431,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return true;
   }
 
-  public static CorporationSyncTracker createOrGetUnfinishedTracker(final SynchronizedEveAccount syncAccount) {
+  public static CorporationSyncTracker createOrGetUnfinishedTracker(
+                                                                    final SynchronizedEveAccount syncAccount) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<CorporationSyncTracker>() {
         @Override
@@ -1186,7 +1453,8 @@ public class CorporationSyncTracker extends SyncTracker {
   }
 
   @SuppressWarnings("unchecked")
-  public static CorporationSyncTracker getUnfinishedTracker(final SynchronizedEveAccount syncAccount) {
+  public static CorporationSyncTracker getUnfinishedTracker(
+                                                            final SynchronizedEveAccount syncAccount) {
     return SyncTracker.<CorporationSyncTracker> getUnfinishedTracker(syncAccount);
   }
 
@@ -1207,11 +1475,15 @@ public class CorporationSyncTracker extends SyncTracker {
   }
 
   @SuppressWarnings("unchecked")
-  public static CorporationSyncTracker getLatestFinishedTracker(final SynchronizedEveAccount owner) {
+  public static CorporationSyncTracker getLatestFinishedTracker(
+                                                                final SynchronizedEveAccount owner) {
     return SyncTracker.<CorporationSyncTracker> getLatestFinishedTracker(owner);
   }
 
-  public static List<CorporationSyncTracker> getHistory(final SynchronizedEveAccount owner, final Long contid, final int maxResults) throws IOException {
+  public static List<CorporationSyncTracker> getHistory(
+                                                        final SynchronizedEveAccount owner,
+                                                        final Long contid,
+                                                        final int maxResults) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<List<CorporationSyncTracker>>() {
         @Override
@@ -1230,7 +1502,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return null;
   }
 
-  public static List<CorporationSyncTracker> getSummary(final Date fromDate) {
+  public static List<CorporationSyncTracker> getSummary(
+                                                        final Date fromDate) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<List<CorporationSyncTracker>>() {
         @Override
@@ -1247,7 +1520,8 @@ public class CorporationSyncTracker extends SyncTracker {
     return null;
   }
 
-  public static String summarizeErrors(Date day) throws IOException {
+  public static String summarizeErrors(
+                                       Date day) throws IOException {
     StringBuilder summary = new StringBuilder();
     summary.append("Corporation Sync Tracker Error Summary on ");
     long days = day.getTime() / (1000 * 60 * 60 * 24);

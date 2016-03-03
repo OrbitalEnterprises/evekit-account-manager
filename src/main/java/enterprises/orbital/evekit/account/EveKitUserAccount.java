@@ -17,20 +17,34 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.TypedQuery;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 import enterprises.orbital.base.OrbitalProperties;
 import enterprises.orbital.base.PersistentPropertyKey;
 import enterprises.orbital.db.ConnectionFactory.RunInTransaction;
 import enterprises.orbital.oauth.UserAccount;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 
 /**
  * User account entries
  */
 @Entity
-@Table(name = "evekit_users")
+@Table(
+    name = "evekit_users")
 @NamedQueries({
-    @NamedQuery(name = "EveKitUserAccount.findByUid", query = "SELECT c FROM EveKitUserAccount c where c.uid = :uid"),
-    @NamedQuery(name = "EveKitUserAccount.allAccounts", query = "SELECT c FROM EveKitUserAccount c"),
+    @NamedQuery(
+        name = "EveKitUserAccount.findByUid",
+        query = "SELECT c FROM EveKitUserAccount c where c.uid = :uid"),
+    @NamedQuery(
+        name = "EveKitUserAccount.allAccounts",
+        query = "SELECT c FROM EveKitUserAccount c"),
 })
+@ApiModel(
+    description = "User account")
+@JsonSerialize(
+    typing = JsonSerialize.Typing.STATIC)
 public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<String> {
   private static final Logger log                         = Logger.getLogger(EveKitUserAccount.class.getName());
 
@@ -38,12 +52,32 @@ public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<Str
   public static final String  PROP_STATIC_DB_ACCESS_LIMIT = "StaticDBAccessLimit";
 
   @Id
-  @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "ek_seq")
-  @SequenceGenerator(name = "ek_seq", initialValue = 100000, allocationSize = 10)
+  @GeneratedValue(
+      strategy = GenerationType.SEQUENCE,
+      generator = "ek_seq")
+  @SequenceGenerator(
+      name = "ek_seq",
+      initialValue = 100000,
+      allocationSize = 10)
+  @ApiModelProperty(
+      value = "Unique user ID")
+  @JsonProperty("uid")
   protected long              uid;
+  @ApiModelProperty(
+      value = "True if user is active, false otherwise")
+  @JsonProperty("active")
   protected boolean           active;
+  @ApiModelProperty(
+      value = "Date (milliseconds UTC) when account was created")
+  @JsonProperty("created")
   protected long              created                     = -1;
+  @ApiModelProperty(
+      value = "True if user is an admin, false otherwise")
+  @JsonProperty("admin")
   protected boolean           admin;
+  @ApiModelProperty(
+      value = "Last time (milliseconds UTC) user logged in")
+  @JsonProperty("last")
   protected long              last                        = -1;
 
   @Override
@@ -55,7 +89,8 @@ public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<Str
     return active;
   }
 
-  public void setActive(boolean active) {
+  public void setActive(
+                        boolean active) {
     this.active = active;
   }
 
@@ -63,7 +98,8 @@ public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<Str
     return created;
   }
 
-  public void setCreated(long created) {
+  public void setCreated(
+                         long created) {
     this.created = created;
   }
 
@@ -71,7 +107,8 @@ public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<Str
     return admin;
   }
 
-  public void setAdmin(boolean admin) {
+  public void setAdmin(
+                       boolean admin) {
     this.admin = admin;
   }
 
@@ -79,7 +116,8 @@ public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<Str
     return last;
   }
 
-  public void setLast(long last) {
+  public void setLast(
+                      long last) {
     this.last = last;
   }
 
@@ -96,7 +134,8 @@ public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<Str
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(
+                        Object obj) {
     if (this == obj) return true;
     if (obj == null) return false;
     if (getClass() != obj.getClass()) return false;
@@ -133,7 +172,9 @@ public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<Str
    *          true if this user should be initially active.
    * @return the new EveKitUserAccount.
    */
-  public static EveKitUserAccount createNewUserAccount(final boolean admin, final boolean active) {
+  public static EveKitUserAccount createNewUserAccount(
+                                                       final boolean admin,
+                                                       final boolean active) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<EveKitUserAccount>() {
         @Override
@@ -159,7 +200,8 @@ public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<Str
    *          the ID of the user account to retrieve.
    * @return the given UserAccount, or null if no such user exists.
    */
-  public static EveKitUserAccount getAccount(final long uid) {
+  public static EveKitUserAccount getAccount(
+                                             final long uid) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<EveKitUserAccount>() {
         @Override
@@ -187,7 +229,8 @@ public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<Str
    *          the UserAccount to update.
    * @return returns the newly persisted User.
    */
-  public static EveKitUserAccount touch(final EveKitUserAccount user) {
+  public static EveKitUserAccount touch(
+                                        final EveKitUserAccount user) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<EveKitUserAccount>() {
         @Override
@@ -246,9 +289,25 @@ public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<Str
   }
 
   @Override
-  public String getPeristentPropertyKey(String field) {
+  public String getPeristentPropertyKey(
+                                        String field) {
     // Key scheme: EveKitUserAccount.<UUID>.<field>
     return "EveKitUserAccount." + String.valueOf(uid) + "." + field;
+  }
+
+  public static EveKitUserAccount update(
+                                         final EveKitUserAccount data) {
+    try {
+      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<EveKitUserAccount>() {
+        @Override
+        public EveKitUserAccount run() throws Exception {
+          return EveKitUserAccountProvider.getFactory().getEntityManager().merge(data);
+        }
+      });
+    } catch (Exception e) {
+      log.log(Level.SEVERE, "query error", e);
+    }
+    return null;
   }
 
 }

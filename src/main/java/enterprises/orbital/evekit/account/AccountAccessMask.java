@@ -3,56 +3,59 @@ package enterprises.orbital.evekit.account;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * Mask of values controlling access to data in synchronized accounts.
  */
 public enum AccountAccessMask {
 
-  // Common Resources
-  ACCESS_ACCOUNT_STATUS(0),
-  ACCESS_ACCOUNT_BALANCE(1),
-  ACCESS_ASSETS(2),
-  ACCESS_CONTACT_LIST(3),
-  ACCESS_BLUEPRINTS(38),
-  ACCESS_BOOKMARKS(39),
-  ACCESS_CONTRACTS(4),
-  ACCESS_FAC_WAR_STATS(7),
-  ACCESS_INDUSTRY_JOBS(8),
-  ACCESS_KILL_LOG(9),
-  ACCESS_MARKET_ORDERS(10),
-  ACCESS_STANDINGS(11),
-  ACCESS_WALLET_JOURNAL(12),
-  ACCESS_WALLET_TRANSACTIONS(13),
-  ALLOW_METADATA_CHANGES(14),
+                               // Common Resources
+                               ACCESS_ACCOUNT_STATUS(0),
+                               ACCESS_ACCOUNT_BALANCE(1),
+                               ACCESS_ASSETS(2),
+                               ACCESS_CONTACT_LIST(3),
+                               ACCESS_BLUEPRINTS(38),
+                               ACCESS_BOOKMARKS(39),
+                               ACCESS_CONTRACTS(4),
+                               ACCESS_FAC_WAR_STATS(7),
+                               ACCESS_INDUSTRY_JOBS(8),
+                               ACCESS_KILL_LOG(9),
+                               ACCESS_MARKET_ORDERS(10),
+                               ACCESS_STANDINGS(11),
+                               ACCESS_WALLET_JOURNAL(12),
+                               ACCESS_WALLET_TRANSACTIONS(13),
+                               ALLOW_METADATA_CHANGES(14),
 
-  // Character Specific Resources
-  ACCESS_CALENDAR_EVENT_ATTENDEES(15),
-  ACCESS_CHARACTER_SHEET(16),
-  ACCESS_CONTACT_NOTIFICATIONS(17),
-  ACCESS_MAIL(18),
-  ACCESS_MAILING_LISTS(19),
-  ACCESS_MEDALS(20),
-  ACCESS_NOTIFICATIONS(21),
-  ACCESS_RESEARCH(22),
-  ACCESS_SKILL_IN_TRAINING(23),
-  ACCESS_SKILL_QUEUE(24),
-  ACCESS_UPCOMING_CALENDAR_EVENTS(5),
+                               // Character Specific Resources
+                               ACCESS_CALENDAR_EVENT_ATTENDEES(15),
+                               ACCESS_CHARACTER_SHEET(16),
+                               ACCESS_CONTACT_NOTIFICATIONS(17),
+                               ACCESS_MAIL(18),
+                               ACCESS_MAILING_LISTS(19),
+                               ACCESS_MEDALS(20),
+                               ACCESS_NOTIFICATIONS(21),
+                               ACCESS_RESEARCH(22),
+                               ACCESS_SKILL_IN_TRAINING(23),
+                               ACCESS_SKILL_QUEUE(24),
+                               ACCESS_UPCOMING_CALENDAR_EVENTS(5),
 
-  // Corporation Specific Resources
-  ACCESS_CONTAINER_LOG(25),
-  ACCESS_CORPORATION_SHEET(26),
-  ACCESS_CORPORATION_MEDALS(27),
-  ACCESS_MEMBER_MEDALS(28),
-  ACCESS_MEMBER_SECURITY(29),
-  ACCESS_MEMBER_SECURITY_LOG(30),
-  ACCESS_MEMBER_TRACKING(31),
-  ACCESS_OUTPOST_LIST(32),
-  ACCESS_SHAREHOLDERS(34),
-  ACCESS_STARBASE_LIST(35),
-  ACCESS_CORPORATION_TITLES(37);
+                               // Corporation Specific Resources
+                               ACCESS_CONTAINER_LOG(25),
+                               ACCESS_CORPORATION_SHEET(26),
+                               ACCESS_CORPORATION_MEDALS(27),
+                               ACCESS_MEMBER_MEDALS(28),
+                               ACCESS_MEMBER_SECURITY(29),
+                               ACCESS_MEMBER_SECURITY_LOG(30),
+                               ACCESS_MEMBER_TRACKING(31),
+                               ACCESS_OUTPOST_LIST(32),
+                               ACCESS_SHAREHOLDERS(34),
+                               ACCESS_STARBASE_LIST(35),
+                               ACCESS_CORPORATION_TITLES(37);
 
-  private int maskPosition;
+  private static final Logger log = Logger.getLogger(AccountAccessMask.class.getName());
+
+  private int                 maskPosition;
 
   private AccountAccessMask(int val) {
     maskPosition = val;
@@ -62,7 +65,9 @@ public enum AccountAccessMask {
     return maskPosition;
   }
 
-  protected static byte[] extend(byte[] original, int pos) {
+  protected static byte[] extend(
+                                 byte[] original,
+                                 int pos) {
     int maxBit = original.length * 8;
     if (pos >= maxBit) {
       int newLen = (pos + 1) / 8 + ((pos + 1) % 8 > 0 ? 1 : 0);
@@ -74,7 +79,9 @@ public enum AccountAccessMask {
     return original;
   }
 
-  public static byte[] setMask(byte[] original, AccountAccessMask value) {
+  public static byte[] setMask(
+                               byte[] original,
+                               AccountAccessMask value) {
     original = extend(original, value.maskPosition);
     int offset = value.maskPosition / 8;
     int bit = value.maskPosition % 8;
@@ -83,7 +90,9 @@ public enum AccountAccessMask {
     return original;
   }
 
-  public static byte[] unsetMask(byte[] original, AccountAccessMask value) {
+  public static byte[] unsetMask(
+                                 byte[] original,
+                                 AccountAccessMask value) {
     original = extend(original, value.maskPosition);
     int offset = value.maskPosition / 8;
     int bit = value.maskPosition % 8;
@@ -92,21 +101,25 @@ public enum AccountAccessMask {
     return original;
   }
 
-  public static boolean isAccessAllowed(byte[] mask, AccountAccessMask test) {
+  public static boolean isAccessAllowed(
+                                        byte[] mask,
+                                        AccountAccessMask test) {
     int offset = test.maskPosition / 8;
     int bit = test.maskPosition % 8;
 
     return (offset < mask.length) && (mask[offset] & (1L << bit)) != 0;
   }
 
-  public static byte[] createMask(AccountAccessMask singleton) {
+  public static byte[] createMask(
+                                  AccountAccessMask singleton) {
     byte[] mask = new byte[1];
     mask = setMask(mask, singleton);
 
     return mask;
   }
 
-  public static byte[] createMask(Iterable<AccountAccessMask> set) {
+  public static byte[] createMask(
+                                  Iterable<AccountAccessMask> set) {
     byte[] mask = new byte[1];
     for (AccountAccessMask next : set) {
       mask = setMask(mask, next);
@@ -115,7 +128,8 @@ public enum AccountAccessMask {
     return mask;
   }
 
-  public static Collection<AccountAccessMask> createMaskSet(byte[] raw) {
+  public static Collection<AccountAccessMask> createMaskSet(
+                                                            byte[] raw) {
     List<AccountAccessMask> result = new ArrayList<AccountAccessMask>();
     for (AccountAccessMask next : AccountAccessMask.values()) {
       if (next.checkAccess(raw)) result.add(next);
@@ -123,7 +137,8 @@ public enum AccountAccessMask {
     return result;
   }
 
-  public boolean checkAccess(byte[] mask) {
+  public boolean checkAccess(
+                             byte[] mask) {
     return isAccessAllowed(mask, this);
   }
 
@@ -134,7 +149,8 @@ public enum AccountAccessMask {
    *          the mask to check
    * @return true if valid, false otherwise.
    */
-  public static boolean isValidMask(byte[] mask) {
+  public static boolean isValidMask(
+                                    byte[] mask) {
     byte[] test = new byte[mask.length];
     System.arraycopy(mask, 0, test, 0, mask.length);
     for (AccountAccessMask next : AccountAccessMask.values()) {
@@ -145,5 +161,29 @@ public enum AccountAccessMask {
     }
 
     return true;
+  }
+
+  public static String stringifyMask(
+                                     byte[] mask) {
+    StringBuilder builder = new StringBuilder();
+    for (AccountAccessMask next : AccountAccessMask.values()) {
+      if (next.checkAccess(mask)) builder.append(next.name()).append('|');
+    }
+    if (builder.length() > 0) builder.setLength(builder.length() - 1);
+    return builder.toString();
+  }
+
+  public static byte[] unstringifyMask(
+                                       String maskString) {
+    List<AccountAccessMask> members = new ArrayList<AccountAccessMask>();
+    for (String next : maskString.split("|")) {
+      try {
+        AccountAccessMask nextMask = AccountAccessMask.valueOf(next);
+        if (nextMask != null) members.add(nextMask);
+      } catch (IllegalArgumentException e) {
+        log.warning("Unrecognized mask constant, ignoring: " + next);
+      }
+    }
+    return createMask(members);
   }
 }

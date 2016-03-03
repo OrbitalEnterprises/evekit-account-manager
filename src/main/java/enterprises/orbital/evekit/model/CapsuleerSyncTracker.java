@@ -18,92 +18,291 @@ import javax.persistence.NamedQuery;
 import javax.persistence.Table;
 import javax.persistence.TypedQuery;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import enterprises.orbital.base.OrbitalProperties;
 import enterprises.orbital.db.ConnectionFactory.RunInTransaction;
 import enterprises.orbital.evekit.account.EveKitUserAccountProvider;
 import enterprises.orbital.evekit.account.SynchronizedEveAccount;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 
 /**
  * Object to track synchronization request for character. A synchronization tracker starts out empty and fills in each supported field type until it is marked
  * as finished. This makes it relatively straightforward to cache a tracker since slightly stale copies are usually harmless.
  */
 @Entity
-@Table(name = "evekit_char_sync")
+@Table(
+    name = "evekit_char_sync")
 @NamedQueries({
-    @NamedQuery(name = "CapsuleerSyncTracker.get", query = "SELECT c FROM CapsuleerSyncTracker c where c.account = :account and c.syncStart = :start"),
-    @NamedQuery(name = "CapsuleerSyncTracker.getAllUnfinished", query = "SELECT c FROM CapsuleerSyncTracker c where c.finished = false"),
+    @NamedQuery(
+        name = "CapsuleerSyncTracker.get",
+        query = "SELECT c FROM CapsuleerSyncTracker c where c.account = :account and c.syncStart = :start"),
+    @NamedQuery(
+        name = "CapsuleerSyncTracker.getAllUnfinished",
+        query = "SELECT c FROM CapsuleerSyncTracker c where c.finished = false"),
     @NamedQuery(
         name = "CapsuleerSyncTracker.getHistory",
         query = "SELECT c FROM CapsuleerSyncTracker c where c.account = :account and c.finished = true and c.syncStart < :start order by c.syncStart desc"),
-    @NamedQuery(name = "CapsuleerSyncTracker.getSummary", query = "SELECT c FROM CapsuleerSyncTracker c where c.finished = true and c.syncStart >= :start"),
+    @NamedQuery(
+        name = "CapsuleerSyncTracker.getSummary",
+        query = "SELECT c FROM CapsuleerSyncTracker c where c.finished = true and c.syncStart >= :start"),
 
 })
+@ApiModel(
+    description = "Capsuleer synchronization tracker entry")
 public class CapsuleerSyncTracker extends SyncTracker {
   private static final Logger   log = Logger.getLogger(CapsuleerSyncTracker.class.getName());
 
   // Status of each element we're synchronizing. If status is
   // SYNC_ERROR, then the "detail" field contains text explaining the error.
+  @ApiModelProperty(
+      value = "Account status status")
+  @JsonProperty("accountStatusStatus")
   private SyncTracker.SyncState accountStatusStatus;
+  @ApiModelProperty(
+      value = "Account status detail message")
+  @JsonProperty("accountStatusDetail")
   private String                accountStatusDetail;
+  @ApiModelProperty(
+      value = "Account balance status")
+  @JsonProperty("accountBalanceStatus")
   private SyncTracker.SyncState accountBalanceStatus;
+  @ApiModelProperty(
+      value = "Account balance detail message")
+  @JsonProperty("accountBalanceDetail")
   private String                accountBalanceDetail;
+  @ApiModelProperty(
+      value = "Asset list status")
+  @JsonProperty("assetListStatus")
   private SyncTracker.SyncState assetListStatus;
+  @ApiModelProperty(
+      value = "Asset list detail message")
+  @JsonProperty("assetListDetail")
   private String                assetListDetail;
+  @ApiModelProperty(
+      value = "Calendar event attendees status")
+  @JsonProperty("calendarEventAttendeesStatus")
   private SyncTracker.SyncState calendarEventAttendeesStatus;
+  @ApiModelProperty(
+      value = "Calendar event attendees detail message")
+  @JsonProperty("calendarEventAttendeesDetail")
   private String                calendarEventAttendeesDetail;
+  @ApiModelProperty(
+      value = "Character sheet status")
+  @JsonProperty("characterSheetStatus")
   private SyncTracker.SyncState characterSheetStatus;
+  @ApiModelProperty(
+      value = "Character sheet detail message")
+  @JsonProperty("characterSheetDetail")
   private String                characterSheetDetail;
+  @ApiModelProperty(
+      value = "Contact list status")
+  @JsonProperty("contactListStatus")
   private SyncTracker.SyncState contactListStatus;
+  @ApiModelProperty(
+      value = "Contact list detail message")
+  @JsonProperty("contactListDetail")
   private String                contactListDetail;
+  @ApiModelProperty(
+      value = "Contact notifications status")
+  @JsonProperty("contactNotificationsStatus")
   private SyncTracker.SyncState contactNotificationsStatus;
+  @ApiModelProperty(
+      value = "Contact notifications detail message")
+  @JsonProperty("contactNotificationsDetail")
   private String                contactNotificationsDetail;
+  @ApiModelProperty(
+      value = "Blueprints status")
+  @JsonProperty("blueprintsStatus")
   private SyncTracker.SyncState blueprintsStatus;
+  @ApiModelProperty(
+      value = "Blueprints detail message")
+  @JsonProperty("blueprintsDetail")
   private String                blueprintsDetail;
+  @ApiModelProperty(
+      value = "Bookmarks status")
+  @JsonProperty("bookmarksStatus")
   private SyncTracker.SyncState bookmarksStatus;
+  @ApiModelProperty(
+      value = "Bookmarks detail message")
+  @JsonProperty("bookmarksDetail")
   private String                bookmarksDetail;
+  @ApiModelProperty(
+      value = "Contracts status")
+  @JsonProperty("contractsStatus")
   private SyncTracker.SyncState contractsStatus;
+  @ApiModelProperty(
+      value = "Contracts detail message")
+  @JsonProperty("contractsDetail")
   private String                contractsDetail;
+  @ApiModelProperty(
+      value = "Contract items status")
+  @JsonProperty("contractItemsStatus")
   private SyncTracker.SyncState contractItemsStatus;
+  @ApiModelProperty(
+      value = "Contract items detail message")
+  @JsonProperty("contractItemsDetail")
   private String                contractItemsDetail;
+  @ApiModelProperty(
+      value = "Contract bids status")
+  @JsonProperty("contractBidsStatus")
   private SyncTracker.SyncState contractBidsStatus;
+  @ApiModelProperty(
+      value = "Contract bids detail message")
+  @JsonProperty("contractBidsDetail")
   private String                contractBidsDetail;
+  @ApiModelProperty(
+      value = "Faction war stats status")
+  @JsonProperty("facWarStatsStatus")
   private SyncTracker.SyncState facWarStatsStatus;
+  @ApiModelProperty(
+      value = "Faction war stats detail message")
+  @JsonProperty("facWarStatsDetail")
   private String                facWarStatsDetail;
+  @ApiModelProperty(
+      value = "Industry jobs status")
+  @JsonProperty("industryJobsStatus")
   private SyncTracker.SyncState industryJobsStatus;
+  @ApiModelProperty(
+      value = "Industry jobs detail message")
+  @JsonProperty("industryJobsDetail")
   private String                industryJobsDetail;
+  @ApiModelProperty(
+      value = "Industry jobs history status")
+  @JsonProperty("industryJobsHistoryStatus")
   private SyncTracker.SyncState industryJobsHistoryStatus;
+  @ApiModelProperty(
+      value = "Industry jobs history detail message")
+  @JsonProperty("industryJobsHistoryDetail")
   private String                industryJobsHistoryDetail;
+  @ApiModelProperty(
+      value = "Kill log status")
+  @JsonProperty("killlogStatus")
   private SyncTracker.SyncState killlogStatus;
+  @ApiModelProperty(
+      value = "Kill log detail message")
+  @JsonProperty("killlogDetail")
   private String                killlogDetail;
+  @ApiModelProperty(
+      value = "Mail bodies status")
+  @JsonProperty("mailBodiesStatus")
   private SyncTracker.SyncState mailBodiesStatus;
+  @ApiModelProperty(
+      value = "Mail bodies detail message")
+  @JsonProperty("mailBodiesDetail")
   private String                mailBodiesDetail;
+  @ApiModelProperty(
+      value = "Mailing lists status")
+  @JsonProperty("mailingListsStatus")
   private SyncTracker.SyncState mailingListsStatus;
+  @ApiModelProperty(
+      value = "Mailing lists detail message")
+  @JsonProperty("mailingListsDetail")
   private String                mailingListsDetail;
+  @ApiModelProperty(
+      value = "Mail messages status")
+  @JsonProperty("mailMessagesStatus")
   private SyncTracker.SyncState mailMessagesStatus;
+  @ApiModelProperty(
+      value = "Mail messages detail message")
+  @JsonProperty("mailMessagesDetail")
   private String                mailMessagesDetail;
+  @ApiModelProperty(
+      value = "Market orders status")
+  @JsonProperty("marketOrdersStatus")
   private SyncTracker.SyncState marketOrdersStatus;
+  @ApiModelProperty(
+      value = "Market orders detail message")
+  @JsonProperty("marketOrdersDetail")
   private String                marketOrdersDetail;
+  @ApiModelProperty(
+      value = "Medals status")
+  @JsonProperty("medalsStatus")
   private SyncTracker.SyncState medalsStatus;
+  @ApiModelProperty(
+      value = "Medals detail message")
+  @JsonProperty("medalsDetail")
   private String                medalsDetail;
+  @ApiModelProperty(
+      value = "Notifications status")
+  @JsonProperty("notificationsStatus")
   private SyncTracker.SyncState notificationsStatus;
+  @ApiModelProperty(
+      value = "Notifications detail message")
+  @JsonProperty("notificationsDetail")
   private String                notificationsDetail;
+  @ApiModelProperty(
+      value = "Notification texts status")
+  @JsonProperty("notificationTextsStatus")
   private SyncTracker.SyncState notificationTextsStatus;
+  @ApiModelProperty(
+      value = "Notification texts detail message")
+  @JsonProperty("notificationTextsDetail")
   private String                notificationTextsDetail;
+  @ApiModelProperty(
+      value = "Planetary colonies status")
+  @JsonProperty("planetaryColoniesStatus")
   private SyncTracker.SyncState planetaryColoniesStatus;
+  @ApiModelProperty(
+      value = "Planetary colonies detail message")
+  @JsonProperty("planetaryColoniesDetail")
   private String                planetaryColoniesDetail;
+  @ApiModelProperty(
+      value = "Research status")
+  @JsonProperty("researchStatus")
   private SyncTracker.SyncState researchStatus;
+  @ApiModelProperty(
+      value = "Research detail message")
+  @JsonProperty("researchDetail")
   private String                researchDetail;
+  @ApiModelProperty(
+      value = "Skill in training status")
+  @JsonProperty("skillInTrainingStatus")
   private SyncTracker.SyncState skillInTrainingStatus;
+  @ApiModelProperty(
+      value = "Skill in training detail message")
+  @JsonProperty("skillInTrainingDetail")
   private String                skillInTrainingDetail;
+  @ApiModelProperty(
+      value = "Skill queue status")
+  @JsonProperty("skillQueueStatus")
   private SyncTracker.SyncState skillQueueStatus;
+  @ApiModelProperty(
+      value = "Skill queue detail message")
+  @JsonProperty("skillQueueDetail")
   private String                skillQueueDetail;
+  @ApiModelProperty(
+      value = "Standings status")
+  @JsonProperty("standingsStatus")
   private SyncTracker.SyncState standingsStatus;
+  @ApiModelProperty(
+      value = "Standings detail message")
+  @JsonProperty("standingsDetail")
   private String                standingsDetail;
+  @ApiModelProperty(
+      value = "Upcoming calendar events status")
+  @JsonProperty("upcomingCalendarEventsStatus")
   private SyncTracker.SyncState upcomingCalendarEventsStatus;
+  @ApiModelProperty(
+      value = "Upcoming calendar events detail message")
+  @JsonProperty("upcomingCalendarEventsDetail")
   private String                upcomingCalendarEventsDetail;
+  @ApiModelProperty(
+      value = "Wallet journal status")
+  @JsonProperty("walletJournalStatus")
   private SyncTracker.SyncState walletJournalStatus;
+  @ApiModelProperty(
+      value = "Wallet journal detail message")
+  @JsonProperty("walletJournalDetail")
   private String                walletJournalDetail;
+  @ApiModelProperty(
+      value = "Wallet transaction status")
+  @JsonProperty("walletTransactionsStatus")
   private SyncTracker.SyncState walletTransactionsStatus;
+  @ApiModelProperty(
+      value = "Wallet transaction detail message")
+  @JsonProperty("walletTransactionsDetail")
   private String                walletTransactionsDetail;
 
   public CapsuleerSyncTracker() {
@@ -141,7 +340,10 @@ public class CapsuleerSyncTracker extends SyncTracker {
   }
 
   @Override
-  public void setState(SynchronizationState state, SyncTracker.SyncState status, String msg) {
+  public void setState(
+                       SynchronizationState state,
+                       SyncTracker.SyncState status,
+                       String msg) {
     switch (state) {
     case SYNC_CHAR_ACCOUNTSTATUS:
       setAccountStatusStatus(status);
@@ -305,7 +507,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
   }
 
   @Override
-  public SynchronizationState trackerComplete(Set<SynchronizationState> checkState) {
+  public SynchronizationState trackerComplete(
+                                              Set<SynchronizationState> checkState) {
     for (SynchronizationState next : checkState) {
       switch (next) {
       case SYNC_CHAR_ACCOUNTSTATUS:
@@ -453,7 +656,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return accountStatusStatus;
   }
 
-  public void setAccountStatusStatus(SyncTracker.SyncState accountStatus) {
+  public void setAccountStatusStatus(
+                                     SyncTracker.SyncState accountStatus) {
     this.accountStatusStatus = accountStatus;
   }
 
@@ -461,7 +665,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return accountStatusDetail;
   }
 
-  public void setAccountStatusDetail(String accountDetail) {
+  public void setAccountStatusDetail(
+                                     String accountDetail) {
     this.accountStatusDetail = accountDetail;
   }
 
@@ -469,7 +674,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return accountBalanceStatus;
   }
 
-  public void setAccountBalanceStatus(SyncTracker.SyncState accountBalanceStatus) {
+  public void setAccountBalanceStatus(
+                                      SyncTracker.SyncState accountBalanceStatus) {
     this.accountBalanceStatus = accountBalanceStatus;
   }
 
@@ -477,7 +683,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return accountBalanceDetail;
   }
 
-  public void setAccountBalanceDetail(String accountBalanceDetail) {
+  public void setAccountBalanceDetail(
+                                      String accountBalanceDetail) {
     this.accountBalanceDetail = accountBalanceDetail;
   }
 
@@ -485,7 +692,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return assetListStatus;
   }
 
-  public void setAssetListStatus(SyncTracker.SyncState assetListStatus) {
+  public void setAssetListStatus(
+                                 SyncTracker.SyncState assetListStatus) {
     this.assetListStatus = assetListStatus;
   }
 
@@ -493,7 +701,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return assetListDetail;
   }
 
-  public void setAssetListDetail(String assetListDetail) {
+  public void setAssetListDetail(
+                                 String assetListDetail) {
     this.assetListDetail = assetListDetail;
   }
 
@@ -501,7 +710,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return calendarEventAttendeesStatus;
   }
 
-  public void setCalendarEventAttendeesStatus(SyncTracker.SyncState calendarEventAttendeesStatus) {
+  public void setCalendarEventAttendeesStatus(
+                                              SyncTracker.SyncState calendarEventAttendeesStatus) {
     this.calendarEventAttendeesStatus = calendarEventAttendeesStatus;
   }
 
@@ -509,7 +719,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return calendarEventAttendeesDetail;
   }
 
-  public void setCalendarEventAttendeesDetail(String calendarEventAttendeesDetail) {
+  public void setCalendarEventAttendeesDetail(
+                                              String calendarEventAttendeesDetail) {
     this.calendarEventAttendeesDetail = calendarEventAttendeesDetail;
   }
 
@@ -517,7 +728,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return characterSheetStatus;
   }
 
-  public void setCharacterSheetStatus(SyncTracker.SyncState characterSheetStatus) {
+  public void setCharacterSheetStatus(
+                                      SyncTracker.SyncState characterSheetStatus) {
     this.characterSheetStatus = characterSheetStatus;
   }
 
@@ -525,7 +737,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return characterSheetDetail;
   }
 
-  public void setCharacterSheetDetail(String characterSheetDetail) {
+  public void setCharacterSheetDetail(
+                                      String characterSheetDetail) {
     this.characterSheetDetail = characterSheetDetail;
   }
 
@@ -533,7 +746,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return contactListStatus;
   }
 
-  public void setContactListStatus(SyncTracker.SyncState contactListStatus) {
+  public void setContactListStatus(
+                                   SyncTracker.SyncState contactListStatus) {
     this.contactListStatus = contactListStatus;
   }
 
@@ -541,7 +755,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return contactListDetail;
   }
 
-  public void setContactListDetail(String contactListDetail) {
+  public void setContactListDetail(
+                                   String contactListDetail) {
     this.contactListDetail = contactListDetail;
   }
 
@@ -549,7 +764,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return contactNotificationsStatus;
   }
 
-  public void setContactNotificationsStatus(SyncTracker.SyncState contactNotificationsStatus) {
+  public void setContactNotificationsStatus(
+                                            SyncTracker.SyncState contactNotificationsStatus) {
     this.contactNotificationsStatus = contactNotificationsStatus;
   }
 
@@ -557,7 +773,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return contactNotificationsDetail;
   }
 
-  public void setContactNotificationsDetail(String contactNotificationsDetail) {
+  public void setContactNotificationsDetail(
+                                            String contactNotificationsDetail) {
     this.contactNotificationsDetail = contactNotificationsDetail;
   }
 
@@ -565,7 +782,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return blueprintsDetail;
   }
 
-  public void setBlueprintsDetail(String blueprintsDetail) {
+  public void setBlueprintsDetail(
+                                  String blueprintsDetail) {
     this.blueprintsDetail = blueprintsDetail;
   }
 
@@ -573,7 +791,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return bookmarksDetail;
   }
 
-  public void setBookmarksDetail(String bookmarksDetail) {
+  public void setBookmarksDetail(
+                                 String bookmarksDetail) {
     this.bookmarksDetail = bookmarksDetail;
   }
 
@@ -581,7 +800,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return contractsDetail;
   }
 
-  public void setContractsDetail(String contractDetail) {
+  public void setContractsDetail(
+                                 String contractDetail) {
     this.contractsDetail = contractDetail;
   }
 
@@ -589,7 +809,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return contractItemsDetail;
   }
 
-  public void setContractItemsDetail(String contractItemDetail) {
+  public void setContractItemsDetail(
+                                     String contractItemDetail) {
     this.contractItemsDetail = contractItemDetail;
   }
 
@@ -597,7 +818,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return contractBidsDetail;
   }
 
-  public void setContractBidsDetail(String contractBidsDetail) {
+  public void setContractBidsDetail(
+                                    String contractBidsDetail) {
     this.contractBidsDetail = contractBidsDetail;
   }
 
@@ -605,7 +827,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return blueprintsStatus;
   }
 
-  public void setBlueprintsStatus(SyncTracker.SyncState status) {
+  public void setBlueprintsStatus(
+                                  SyncTracker.SyncState status) {
     this.blueprintsStatus = status;
   }
 
@@ -613,7 +836,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return bookmarksStatus;
   }
 
-  public void setBookmarksStatus(SyncTracker.SyncState status) {
+  public void setBookmarksStatus(
+                                 SyncTracker.SyncState status) {
     this.bookmarksStatus = status;
   }
 
@@ -621,7 +845,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return contractsStatus;
   }
 
-  public void setContractsStatus(SyncTracker.SyncState status) {
+  public void setContractsStatus(
+                                 SyncTracker.SyncState status) {
     this.contractsStatus = status;
   }
 
@@ -629,7 +854,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return contractItemsStatus;
   }
 
-  public void setContractItemsStatus(SyncTracker.SyncState status) {
+  public void setContractItemsStatus(
+                                     SyncTracker.SyncState status) {
     this.contractItemsStatus = status;
   }
 
@@ -637,7 +863,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return contractBidsStatus;
   }
 
-  public void setContractBidsStatus(SyncTracker.SyncState status) {
+  public void setContractBidsStatus(
+                                    SyncTracker.SyncState status) {
     this.contractBidsStatus = status;
   }
 
@@ -645,7 +872,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return facWarStatsStatus;
   }
 
-  public void setFacWarStatsStatus(SyncTracker.SyncState facWarStatsStatus) {
+  public void setFacWarStatsStatus(
+                                   SyncTracker.SyncState facWarStatsStatus) {
     this.facWarStatsStatus = facWarStatsStatus;
   }
 
@@ -653,7 +881,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return facWarStatsDetail;
   }
 
-  public void setFacWarStatsDetail(String facWarStatsDetail) {
+  public void setFacWarStatsDetail(
+                                   String facWarStatsDetail) {
     this.facWarStatsDetail = facWarStatsDetail;
   }
 
@@ -661,7 +890,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return industryJobsStatus;
   }
 
-  public void setIndustryJobsStatus(SyncTracker.SyncState industryJobsStatus) {
+  public void setIndustryJobsStatus(
+                                    SyncTracker.SyncState industryJobsStatus) {
     this.industryJobsStatus = industryJobsStatus;
   }
 
@@ -669,7 +899,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return industryJobsDetail;
   }
 
-  public void setIndustryJobsDetail(String industryJobsDetail) {
+  public void setIndustryJobsDetail(
+                                    String industryJobsDetail) {
     this.industryJobsDetail = industryJobsDetail;
   }
 
@@ -677,7 +908,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return industryJobsHistoryStatus;
   }
 
-  public void setIndustryJobsHistoryStatus(SyncTracker.SyncState industryJobsHistoryStatus) {
+  public void setIndustryJobsHistoryStatus(
+                                           SyncTracker.SyncState industryJobsHistoryStatus) {
     this.industryJobsHistoryStatus = industryJobsHistoryStatus;
   }
 
@@ -685,7 +917,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return industryJobsHistoryDetail;
   }
 
-  public void setIndustryJobsHistoryDetail(String industryJobsHistoryDetail) {
+  public void setIndustryJobsHistoryDetail(
+                                           String industryJobsHistoryDetail) {
     this.industryJobsHistoryDetail = industryJobsHistoryDetail;
   }
 
@@ -693,7 +926,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return killlogStatus;
   }
 
-  public void setKilllogStatus(SyncTracker.SyncState killlogStatus) {
+  public void setKilllogStatus(
+                               SyncTracker.SyncState killlogStatus) {
     this.killlogStatus = killlogStatus;
   }
 
@@ -701,7 +935,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return killlogDetail;
   }
 
-  public void setKilllogDetail(String killlogDetail) {
+  public void setKilllogDetail(
+                               String killlogDetail) {
     this.killlogDetail = killlogDetail;
   }
 
@@ -709,7 +944,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return mailBodiesStatus;
   }
 
-  public void setMailBodiesStatus(SyncTracker.SyncState mailBodiesStatus) {
+  public void setMailBodiesStatus(
+                                  SyncTracker.SyncState mailBodiesStatus) {
     this.mailBodiesStatus = mailBodiesStatus;
   }
 
@@ -717,7 +953,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return mailBodiesDetail;
   }
 
-  public void setMailBodiesDetail(String mailBodiesDetail) {
+  public void setMailBodiesDetail(
+                                  String mailBodiesDetail) {
     this.mailBodiesDetail = mailBodiesDetail;
   }
 
@@ -725,7 +962,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return mailingListsStatus;
   }
 
-  public void setMailingListsStatus(SyncTracker.SyncState mailingListsStatus) {
+  public void setMailingListsStatus(
+                                    SyncTracker.SyncState mailingListsStatus) {
     this.mailingListsStatus = mailingListsStatus;
   }
 
@@ -733,7 +971,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return mailingListsDetail;
   }
 
-  public void setMailingListsDetail(String mailingListsDetail) {
+  public void setMailingListsDetail(
+                                    String mailingListsDetail) {
     this.mailingListsDetail = mailingListsDetail;
   }
 
@@ -741,7 +980,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return mailMessagesStatus;
   }
 
-  public void setMailMessagesStatus(SyncTracker.SyncState mailMessagesStatus) {
+  public void setMailMessagesStatus(
+                                    SyncTracker.SyncState mailMessagesStatus) {
     this.mailMessagesStatus = mailMessagesStatus;
   }
 
@@ -749,7 +989,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return mailMessagesDetail;
   }
 
-  public void setMailMessagesDetail(String mailMessagesDetail) {
+  public void setMailMessagesDetail(
+                                    String mailMessagesDetail) {
     this.mailMessagesDetail = mailMessagesDetail;
   }
 
@@ -757,7 +998,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return marketOrdersStatus;
   }
 
-  public void setMarketOrdersStatus(SyncTracker.SyncState marketOrdersStatus) {
+  public void setMarketOrdersStatus(
+                                    SyncTracker.SyncState marketOrdersStatus) {
     this.marketOrdersStatus = marketOrdersStatus;
   }
 
@@ -765,7 +1007,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return marketOrdersDetail;
   }
 
-  public void setMarketOrdersDetail(String marketOrdersDetail) {
+  public void setMarketOrdersDetail(
+                                    String marketOrdersDetail) {
     this.marketOrdersDetail = marketOrdersDetail;
   }
 
@@ -773,7 +1016,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return medalsStatus;
   }
 
-  public void setMedalsStatus(SyncTracker.SyncState medalsStatus) {
+  public void setMedalsStatus(
+                              SyncTracker.SyncState medalsStatus) {
     this.medalsStatus = medalsStatus;
   }
 
@@ -781,7 +1025,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return medalsDetail;
   }
 
-  public void setMedalsDetail(String medalsDetail) {
+  public void setMedalsDetail(
+                              String medalsDetail) {
     this.medalsDetail = medalsDetail;
   }
 
@@ -789,7 +1034,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return notificationsStatus;
   }
 
-  public void setNotificationsStatus(SyncTracker.SyncState notificationsStatus) {
+  public void setNotificationsStatus(
+                                     SyncTracker.SyncState notificationsStatus) {
     this.notificationsStatus = notificationsStatus;
   }
 
@@ -797,7 +1043,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return notificationsDetail;
   }
 
-  public void setNotificationsDetail(String notificationsDetail) {
+  public void setNotificationsDetail(
+                                     String notificationsDetail) {
     this.notificationsDetail = notificationsDetail;
   }
 
@@ -805,7 +1052,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return notificationTextsStatus;
   }
 
-  public void setNotificationTextsStatus(SyncTracker.SyncState notificationTextsStatus) {
+  public void setNotificationTextsStatus(
+                                         SyncTracker.SyncState notificationTextsStatus) {
     this.notificationTextsStatus = notificationTextsStatus;
   }
 
@@ -813,7 +1061,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return notificationTextsDetail;
   }
 
-  public void setNotificationTextsDetail(String notificationTextsDetail) {
+  public void setNotificationTextsDetail(
+                                         String notificationTextsDetail) {
     this.notificationTextsDetail = notificationTextsDetail;
   }
 
@@ -821,7 +1070,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return planetaryColoniesStatus;
   }
 
-  public void setPlanetaryColoniesStatus(SyncTracker.SyncState planetaryColoniesStatus) {
+  public void setPlanetaryColoniesStatus(
+                                         SyncTracker.SyncState planetaryColoniesStatus) {
     this.planetaryColoniesStatus = planetaryColoniesStatus;
   }
 
@@ -829,7 +1079,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return planetaryColoniesDetail;
   }
 
-  public void setPlanetaryColoniesDetail(String planetaryColoniesDetail) {
+  public void setPlanetaryColoniesDetail(
+                                         String planetaryColoniesDetail) {
     this.planetaryColoniesDetail = planetaryColoniesDetail;
   }
 
@@ -837,7 +1088,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return researchStatus;
   }
 
-  public void setResearchStatus(SyncTracker.SyncState researchStatus) {
+  public void setResearchStatus(
+                                SyncTracker.SyncState researchStatus) {
     this.researchStatus = researchStatus;
   }
 
@@ -845,7 +1097,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return researchDetail;
   }
 
-  public void setResearchDetail(String researchDetail) {
+  public void setResearchDetail(
+                                String researchDetail) {
     this.researchDetail = researchDetail;
   }
 
@@ -853,7 +1106,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return skillInTrainingStatus;
   }
 
-  public void setSkillInTrainingStatus(SyncTracker.SyncState skillInTrainingStatus) {
+  public void setSkillInTrainingStatus(
+                                       SyncTracker.SyncState skillInTrainingStatus) {
     this.skillInTrainingStatus = skillInTrainingStatus;
   }
 
@@ -861,7 +1115,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return skillInTrainingDetail;
   }
 
-  public void setSkillInTrainingDetail(String skillInTrainingDetail) {
+  public void setSkillInTrainingDetail(
+                                       String skillInTrainingDetail) {
     this.skillInTrainingDetail = skillInTrainingDetail;
   }
 
@@ -869,7 +1124,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return skillQueueStatus;
   }
 
-  public void setSkillQueueStatus(SyncTracker.SyncState skillQueueStatus) {
+  public void setSkillQueueStatus(
+                                  SyncTracker.SyncState skillQueueStatus) {
     this.skillQueueStatus = skillQueueStatus;
   }
 
@@ -877,7 +1133,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return skillQueueDetail;
   }
 
-  public void setSkillQueueDetail(String skillQueueDetail) {
+  public void setSkillQueueDetail(
+                                  String skillQueueDetail) {
     this.skillQueueDetail = skillQueueDetail;
   }
 
@@ -885,7 +1142,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return standingsStatus;
   }
 
-  public void setStandingsStatus(SyncTracker.SyncState standingsStatus) {
+  public void setStandingsStatus(
+                                 SyncTracker.SyncState standingsStatus) {
     this.standingsStatus = standingsStatus;
   }
 
@@ -893,7 +1151,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return standingsDetail;
   }
 
-  public void setStandingsDetail(String standingsDetail) {
+  public void setStandingsDetail(
+                                 String standingsDetail) {
     this.standingsDetail = standingsDetail;
   }
 
@@ -901,7 +1160,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return upcomingCalendarEventsStatus;
   }
 
-  public void setUpcomingCalendarEventsStatus(SyncTracker.SyncState upcomingCalendarEventsStatus) {
+  public void setUpcomingCalendarEventsStatus(
+                                              SyncTracker.SyncState upcomingCalendarEventsStatus) {
     this.upcomingCalendarEventsStatus = upcomingCalendarEventsStatus;
   }
 
@@ -909,7 +1169,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return upcomingCalendarEventsDetail;
   }
 
-  public void setUpcomingCalendarEventsDetail(String upcomingCalendarEventsDetail) {
+  public void setUpcomingCalendarEventsDetail(
+                                              String upcomingCalendarEventsDetail) {
     this.upcomingCalendarEventsDetail = upcomingCalendarEventsDetail;
   }
 
@@ -917,7 +1178,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return walletJournalStatus;
   }
 
-  public void setWalletJournalStatus(SyncTracker.SyncState walletJournalStatus) {
+  public void setWalletJournalStatus(
+                                     SyncTracker.SyncState walletJournalStatus) {
     this.walletJournalStatus = walletJournalStatus;
   }
 
@@ -925,7 +1187,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return walletJournalDetail;
   }
 
-  public void setWalletJournalDetail(String walletJournalDetail) {
+  public void setWalletJournalDetail(
+                                     String walletJournalDetail) {
     this.walletJournalDetail = walletJournalDetail;
   }
 
@@ -933,7 +1196,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return walletTransactionsStatus;
   }
 
-  public void setWalletTransactionsStatus(SyncTracker.SyncState walletTransactionsStatus) {
+  public void setWalletTransactionsStatus(
+                                          SyncTracker.SyncState walletTransactionsStatus) {
     this.walletTransactionsStatus = walletTransactionsStatus;
   }
 
@@ -941,7 +1205,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return walletTransactionsDetail;
   }
 
-  public void setWalletTransactionsDetail(String walletTransactionsDetail) {
+  public void setWalletTransactionsDetail(
+                                          String walletTransactionsDetail) {
     this.walletTransactionsDetail = walletTransactionsDetail;
   }
 
@@ -1015,7 +1280,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(
+                        Object obj) {
     if (this == obj) return true;
     if (!super.equals(obj)) return false;
     if (getClass() != obj.getClass()) return false;
@@ -1173,7 +1439,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
         + walletTransactionsStatus + ", walletTransactionsDetail=" + walletTransactionsDetail + "]";
   }
 
-  public static CapsuleerSyncTracker createOrGetUnfinishedTracker(final SynchronizedEveAccount syncAccount) {
+  public static CapsuleerSyncTracker createOrGetUnfinishedTracker(
+                                                                  final SynchronizedEveAccount syncAccount) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<CapsuleerSyncTracker>() {
         @Override
@@ -1194,7 +1461,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
   }
 
   @SuppressWarnings("unchecked")
-  public static CapsuleerSyncTracker getUnfinishedTracker(final SynchronizedEveAccount syncAccount) {
+  public static CapsuleerSyncTracker getUnfinishedTracker(
+                                                          final SynchronizedEveAccount syncAccount) {
     return SyncTracker.<CapsuleerSyncTracker> getUnfinishedTracker(syncAccount);
   }
 
@@ -1215,11 +1483,15 @@ public class CapsuleerSyncTracker extends SyncTracker {
   }
 
   @SuppressWarnings("unchecked")
-  public static CapsuleerSyncTracker getLatestFinishedTracker(final SynchronizedEveAccount owner) {
+  public static CapsuleerSyncTracker getLatestFinishedTracker(
+                                                              final SynchronizedEveAccount owner) {
     return SyncTracker.<CapsuleerSyncTracker> getLatestFinishedTracker(owner);
   }
 
-  public static List<CapsuleerSyncTracker> getHistory(final SynchronizedEveAccount owner, final Long contid, final int maxResults) {
+  public static List<CapsuleerSyncTracker> getHistory(
+                                                      final SynchronizedEveAccount owner,
+                                                      final Long contid,
+                                                      final int maxResults) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<List<CapsuleerSyncTracker>>() {
         @Override
@@ -1238,7 +1510,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return null;
   }
 
-  public static List<CapsuleerSyncTracker> getSummary(final Date fromDate) {
+  public static List<CapsuleerSyncTracker> getSummary(
+                                                      final Date fromDate) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<List<CapsuleerSyncTracker>>() {
         @Override
@@ -1255,7 +1528,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return null;
   }
 
-  public static String summarizeErrors(Date day) throws IOException {
+  public static String summarizeErrors(
+                                       Date day) throws IOException {
     StringBuilder summary = new StringBuilder();
     summary.append("Capsuleer Sync Tracker Error Summary on ");
     long days = day.getTime() / (1000 * 60 * 60 * 24);

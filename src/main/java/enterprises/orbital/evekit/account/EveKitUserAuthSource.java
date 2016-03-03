@@ -6,12 +6,14 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Index;
 import javax.persistence.JoinColumn;
+import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
@@ -20,42 +22,94 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.TypedQuery;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 import enterprises.orbital.base.OrbitalProperties;
 import enterprises.orbital.db.ConnectionFactory.RunInTransaction;
 import enterprises.orbital.db.ConnectionFactory.RunInVoidTransaction;
 import enterprises.orbital.oauth.UserAccount;
 import enterprises.orbital.oauth.UserAuthSource;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 
 /**
  * User authentication sources. There may be multiple entries associated with a single UserAccount.
  */
 @Entity
-@Table(name = "evekit_auth_source", indexes = {
-    @Index(name = "accountIndex", columnList = "uid", unique = false), @Index(name = "sourceAndScreenIndex", columnList = "source, screenName", unique = false)
+@Table(
+    name = "evekit_auth_source",
+    indexes = {
+        @Index(
+            name = "accountIndex",
+            columnList = "uid",
+            unique = false),
+        @Index(
+            name = "sourceAndScreenIndex",
+            columnList = "source, screenName",
+            unique = false)
 })
 @NamedQueries({
     @NamedQuery(
         name = "EveKitUserAuthSource.findByAcctAndSource",
         query = "SELECT c FROM EveKitUserAuthSource c where c.account = :account and c.source = :source"),
-    @NamedQuery(name = "EveKitUserAuthSource.allSourcesByAcct", query = "SELECT c FROM EveKitUserAuthSource c where c.account = :account order by c.last desc"),
-    @NamedQuery(name = "EveKitUserAuthSource.all", query = "SELECT c FROM EveKitUserAuthSource c"),
+    @NamedQuery(
+        name = "EveKitUserAuthSource.allSourcesByAcct",
+        query = "SELECT c FROM EveKitUserAuthSource c where c.account = :account order by c.last desc"),
+    @NamedQuery(
+        name = "EveKitUserAuthSource.all",
+        query = "SELECT c FROM EveKitUserAuthSource c"),
     @NamedQuery(
         name = "EveKitUserAuthSource.allBySourceAndScreenname",
         query = "SELECT c FROM EveKitUserAuthSource c where c.source = :source and c.screenName = :screenname"),
 })
+@ApiModel(
+    description = "Authentication source for a user")
+@JsonIgnoreProperties({
+    "account"
+})
+@JsonSerialize(
+    typing = JsonSerialize.Typing.STATIC)
 public class EveKitUserAuthSource implements UserAuthSource {
   private static final Logger log  = Logger.getLogger(EveKitUserAuthSource.class.getName());
 
   @Id
-  @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "ek_seq")
-  @SequenceGenerator(name = "ek_seq", initialValue = 100000, allocationSize = 10)
+  @GeneratedValue(
+      strategy = GenerationType.SEQUENCE,
+      generator = "ek_seq")
+  @SequenceGenerator(
+      name = "ek_seq",
+      initialValue = 100000,
+      allocationSize = 10)
+  @ApiModelProperty(
+      value = "Unique source ID")
+  @JsonProperty("sid")
   protected long              sid;
   @ManyToOne
-  @JoinColumn(name = "uid", referencedColumnName = "uid")
+  @JoinColumn(
+      name = "uid",
+      referencedColumnName = "uid")
   private EveKitUserAccount   account;
+  @ApiModelProperty(
+      value = "Name of authentication source")
+  @JsonProperty("source")
   private String              source;
+  @ApiModelProperty(
+      value = "Screen name for this source")
+  @JsonProperty("screenName")
   private String              screenName;
+  @ApiModelProperty(
+      value = "Source specific authentication details")
+  @JsonProperty("details")
+  @Lob
+  @Column(
+      name = "details",
+      columnDefinition = "CLOB NOT NULL")
   private String              details;
+  @ApiModelProperty(
+      value = "Last time (milliseconds UTC) this source was used to authenticate")
+  @JsonProperty("last")
   private long                last = -1;
 
   public EveKitUserAccount getUserAccount() {
@@ -77,7 +131,8 @@ public class EveKitUserAuthSource implements UserAuthSource {
     return screenName;
   }
 
-  public void setScreenName(String screenName) {
+  public void setScreenName(
+                            String screenName) {
     this.screenName = screenName;
   }
 
@@ -85,7 +140,8 @@ public class EveKitUserAuthSource implements UserAuthSource {
     return details;
   }
 
-  public void setDetails(String details) {
+  public void setDetails(
+                         String details) {
     this.details = details;
   }
 
@@ -93,7 +149,8 @@ public class EveKitUserAuthSource implements UserAuthSource {
     return last;
   }
 
-  public void setLast(long last) {
+  public void setLast(
+                      long last) {
     this.last = last;
   }
 
@@ -111,7 +168,8 @@ public class EveKitUserAuthSource implements UserAuthSource {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(
+                        Object obj) {
     if (this == obj) return true;
     if (obj == null) return false;
     if (getClass() != obj.getClass()) return false;
@@ -139,7 +197,9 @@ public class EveKitUserAuthSource implements UserAuthSource {
         + ", last=" + last + "]";
   }
 
-  public static EveKitUserAuthSource getSource(final EveKitUserAccount acct, final String source) {
+  public static EveKitUserAuthSource getSource(
+                                               final EveKitUserAccount acct,
+                                               final String source) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<EveKitUserAuthSource>() {
         @Override
@@ -161,7 +221,8 @@ public class EveKitUserAuthSource implements UserAuthSource {
     return null;
   }
 
-  public static List<EveKitUserAuthSource> getAllSources(final EveKitUserAccount acct) throws IOException {
+  public static List<EveKitUserAuthSource> getAllSources(
+                                                         final EveKitUserAccount acct) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<List<EveKitUserAuthSource>>() {
         @Override
@@ -178,7 +239,8 @@ public class EveKitUserAuthSource implements UserAuthSource {
     return null;
   }
 
-  public static EveKitUserAuthSource getLastUsedSource(final EveKitUserAccount acct) throws IOException {
+  public static EveKitUserAuthSource getLastUsedSource(
+                                                       final EveKitUserAccount acct) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<EveKitUserAuthSource>() {
         @Override
@@ -213,7 +275,9 @@ public class EveKitUserAuthSource implements UserAuthSource {
     return null;
   }
 
-  public static EveKitUserAuthSource getBySourceScreenname(final String source, final String screenName) {
+  public static EveKitUserAuthSource getBySourceScreenname(
+                                                           final String source,
+                                                           final String screenName) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<EveKitUserAuthSource>() {
         @Override
@@ -233,7 +297,9 @@ public class EveKitUserAuthSource implements UserAuthSource {
     return null;
   }
 
-  public static EveKitUserAuthSource updateAccount(final EveKitUserAuthSource src, final EveKitUserAccount newAccount) {
+  public static EveKitUserAuthSource updateAccount(
+                                                   final EveKitUserAuthSource src,
+                                                   final EveKitUserAccount newAccount) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<EveKitUserAuthSource>() {
         @Override
@@ -252,7 +318,11 @@ public class EveKitUserAuthSource implements UserAuthSource {
     return null;
   }
 
-  public static EveKitUserAuthSource createSource(final EveKitUserAccount owner, final String source, final String screenName, final String details) {
+  public static EveKitUserAuthSource createSource(
+                                                  final EveKitUserAccount owner,
+                                                  final String source,
+                                                  final String screenName,
+                                                  final String details) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<EveKitUserAuthSource>() {
         @Override
@@ -274,7 +344,9 @@ public class EveKitUserAuthSource implements UserAuthSource {
     return null;
   }
 
-  public static void removeSourceIfExists(final EveKitUserAccount owner, final String source) {
+  public static void removeSourceIfExists(
+                                          final EveKitUserAccount owner,
+                                          final String source) {
     try {
       EveKitUserAccountProvider.getFactory().runTransaction(new RunInVoidTransaction() {
         @Override
@@ -288,7 +360,8 @@ public class EveKitUserAuthSource implements UserAuthSource {
     }
   }
 
-  public static EveKitUserAuthSource touch(final EveKitUserAuthSource source) {
+  public static EveKitUserAuthSource touch(
+                                           final EveKitUserAuthSource source) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<EveKitUserAuthSource>() {
         @Override
@@ -316,7 +389,8 @@ public class EveKitUserAuthSource implements UserAuthSource {
   }
 
   @Override
-  public void updateAccount(UserAccount existing) {
+  public void updateAccount(
+                            UserAccount existing) {
     assert existing instanceof EveKitUserAccount;
     updateAccount(this, (EveKitUserAccount) existing);
   }
