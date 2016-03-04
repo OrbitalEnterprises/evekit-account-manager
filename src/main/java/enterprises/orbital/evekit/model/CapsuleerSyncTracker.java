@@ -97,6 +97,14 @@ public class CapsuleerSyncTracker extends SyncTracker {
   @JsonProperty("characterSheetDetail")
   private String                characterSheetDetail;
   @ApiModelProperty(
+      value = "Chat channel status")
+  @JsonProperty("chatChannelStatus")
+  private SyncTracker.SyncState chatChannelsStatus;
+  @ApiModelProperty(
+      value = "Chat channel detail message")
+  @JsonProperty("chatChannelDetail")
+  private String                chatChannelsDetail;
+  @ApiModelProperty(
       value = "Contact list status")
   @JsonProperty("contactListStatus")
   private SyncTracker.SyncState contactListStatus;
@@ -311,6 +319,7 @@ public class CapsuleerSyncTracker extends SyncTracker {
     assetListStatus = SyncTracker.SyncState.NOT_PROCESSED;
     calendarEventAttendeesStatus = SyncTracker.SyncState.NOT_PROCESSED;
     characterSheetStatus = SyncTracker.SyncState.NOT_PROCESSED;
+    chatChannelsStatus = SyncTracker.SyncState.NOT_PROCESSED;
     contactListStatus = SyncTracker.SyncState.NOT_PROCESSED;
     contactNotificationsStatus = SyncTracker.SyncState.NOT_PROCESSED;
     blueprintsStatus = SyncTracker.SyncState.NOT_PROCESSED;
@@ -368,6 +377,11 @@ public class CapsuleerSyncTracker extends SyncTracker {
     case SYNC_CHAR_CHARACTERSHEET:
       setCharacterSheetStatus(status);
       setCharacterSheetDetail(msg);
+      break;
+
+    case SYNC_CHAR_CHATCHANNELS:
+      setChatChannelsStatus(status);
+      setChatChannelsDetail(msg);
       break;
 
     case SYNC_CHAR_CONTACTLIST:
@@ -532,6 +546,10 @@ public class CapsuleerSyncTracker extends SyncTracker {
 
       case SYNC_CHAR_CHARACTERSHEET:
         if (characterSheetStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
+        break;
+
+      case SYNC_CHAR_CHATCHANNELS:
+        if (chatChannelsStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
         break;
 
       case SYNC_CHAR_CONTACTLIST:
@@ -740,6 +758,24 @@ public class CapsuleerSyncTracker extends SyncTracker {
   public void setCharacterSheetDetail(
                                       String characterSheetDetail) {
     this.characterSheetDetail = characterSheetDetail;
+  }
+
+  public SyncTracker.SyncState getChatChannelsStatus() {
+    return chatChannelsStatus;
+  }
+
+  public void setChatChannelsStatus(
+                                    SyncTracker.SyncState chatChannelsStatus) {
+    this.chatChannelsStatus = chatChannelsStatus;
+  }
+
+  public String getChatChannelsDetail() {
+    return chatChannelsDetail;
+  }
+
+  public void setChatChannelsDetail(
+                                    String chatChannelsDetail) {
+    this.chatChannelsDetail = chatChannelsDetail;
   }
 
   public SyncTracker.SyncState getContactListStatus() {
@@ -1228,6 +1264,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     result = prime * result + ((calendarEventAttendeesStatus == null) ? 0 : calendarEventAttendeesStatus.hashCode());
     result = prime * result + ((characterSheetDetail == null) ? 0 : characterSheetDetail.hashCode());
     result = prime * result + ((characterSheetStatus == null) ? 0 : characterSheetStatus.hashCode());
+    result = prime * result + ((chatChannelsDetail == null) ? 0 : chatChannelsDetail.hashCode());
+    result = prime * result + ((chatChannelsStatus == null) ? 0 : chatChannelsStatus.hashCode());
     result = prime * result + ((contactListDetail == null) ? 0 : contactListDetail.hashCode());
     result = prime * result + ((contactListStatus == null) ? 0 : contactListStatus.hashCode());
     result = prime * result + ((contactNotificationsDetail == null) ? 0 : contactNotificationsDetail.hashCode());
@@ -1314,6 +1352,10 @@ public class CapsuleerSyncTracker extends SyncTracker {
       if (other.characterSheetDetail != null) return false;
     } else if (!characterSheetDetail.equals(other.characterSheetDetail)) return false;
     if (characterSheetStatus != other.characterSheetStatus) return false;
+    if (chatChannelsDetail == null) {
+      if (other.chatChannelsDetail != null) return false;
+    } else if (!chatChannelsDetail.equals(other.chatChannelsDetail)) return false;
+    if (chatChannelsStatus != other.chatChannelsStatus) return false;
     if (contactListDetail == null) {
       if (other.contactListDetail != null) return false;
     } else if (!contactListDetail.equals(other.contactListDetail)) return false;
@@ -1418,25 +1460,26 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return "CapsuleerSyncTracker [accountStatusStatus=" + accountStatusStatus + ", accountStatusDetail=" + accountStatusDetail + ", accountBalanceStatus="
         + accountBalanceStatus + ", accountBalanceDetail=" + accountBalanceDetail + ", assetListStatus=" + assetListStatus + ", assetListDetail="
         + assetListDetail + ", calendarEventAttendeesStatus=" + calendarEventAttendeesStatus + ", calendarEventAttendeesDetail=" + calendarEventAttendeesDetail
-        + ", characterSheetStatus=" + characterSheetStatus + ", characterSheetDetail=" + characterSheetDetail + ", contactListStatus=" + contactListStatus
-        + ", contactListDetail=" + contactListDetail + ", contactNotificationsStatus=" + contactNotificationsStatus + ", contactNotificationsDetail="
-        + contactNotificationsDetail + ", blueprintsStatus=" + blueprintsStatus + ", blueprintsDetail=" + blueprintsDetail + ", bookmarksStatus="
-        + bookmarksStatus + ", bookmarksDetail=" + bookmarksDetail + ", contractsStatus=" + contractsStatus + ", contractsDetail=" + contractsDetail
-        + ", contractItemsStatus=" + contractItemsStatus + ", contractItemsDetail=" + contractItemsDetail + ", contractBidsStatus=" + contractBidsStatus
-        + ", contractBidsDetail=" + contractBidsDetail + ", facWarStatsStatus=" + facWarStatsStatus + ", facWarStatsDetail=" + facWarStatsDetail
-        + ", industryJobsStatus=" + industryJobsStatus + ", industryJobsDetail=" + industryJobsDetail + ", industryJobsHistoryStatus="
-        + industryJobsHistoryStatus + ", industryJobsHistoryDetail=" + industryJobsHistoryDetail + ", killlogStatus=" + killlogStatus + ", killlogDetail="
-        + killlogDetail + ", mailBodiesStatus=" + mailBodiesStatus + ", mailBodiesDetail=" + mailBodiesDetail + ", mailingListsStatus=" + mailingListsStatus
-        + ", mailingListsDetail=" + mailingListsDetail + ", mailMessagesStatus=" + mailMessagesStatus + ", mailMessagesDetail=" + mailMessagesDetail
-        + ", marketOrdersStatus=" + marketOrdersStatus + ", marketOrdersDetail=" + marketOrdersDetail + ", medalsStatus=" + medalsStatus + ", medalsDetail="
-        + medalsDetail + ", notificationsStatus=" + notificationsStatus + ", notificationsDetail=" + notificationsDetail + ", notificationTextsStatus="
-        + notificationTextsStatus + ", notificationTextsDetail=" + notificationTextsDetail + ", planetaryColoniesStatus=" + planetaryColoniesStatus
-        + ", planetaryColoniesDetail=" + planetaryColoniesDetail + ", researchStatus=" + researchStatus + ", researchDetail=" + researchDetail
-        + ", skillInTrainingStatus=" + skillInTrainingStatus + ", skillInTrainingDetail=" + skillInTrainingDetail + ", skillQueueStatus=" + skillQueueStatus
-        + ", skillQueueDetail=" + skillQueueDetail + ", standingsStatus=" + standingsStatus + ", standingsDetail=" + standingsDetail
-        + ", upcomingCalendarEventsStatus=" + upcomingCalendarEventsStatus + ", upcomingCalendarEventsDetail=" + upcomingCalendarEventsDetail
-        + ", walletJournalStatus=" + walletJournalStatus + ", walletJournalDetail=" + walletJournalDetail + ", walletTransactionsStatus="
-        + walletTransactionsStatus + ", walletTransactionsDetail=" + walletTransactionsDetail + "]";
+        + ", characterSheetStatus=" + characterSheetStatus + ", characterSheetDetail=" + characterSheetDetail + ", chatChannelsStatus=" + chatChannelsStatus
+        + ", chatChannelsDetail=" + chatChannelsDetail + ", contactListStatus=" + contactListStatus + ", contactListDetail=" + contactListDetail
+        + ", contactNotificationsStatus=" + contactNotificationsStatus + ", contactNotificationsDetail=" + contactNotificationsDetail + ", blueprintsStatus="
+        + blueprintsStatus + ", blueprintsDetail=" + blueprintsDetail + ", bookmarksStatus=" + bookmarksStatus + ", bookmarksDetail=" + bookmarksDetail
+        + ", contractsStatus=" + contractsStatus + ", contractsDetail=" + contractsDetail + ", contractItemsStatus=" + contractItemsStatus
+        + ", contractItemsDetail=" + contractItemsDetail + ", contractBidsStatus=" + contractBidsStatus + ", contractBidsDetail=" + contractBidsDetail
+        + ", facWarStatsStatus=" + facWarStatsStatus + ", facWarStatsDetail=" + facWarStatsDetail + ", industryJobsStatus=" + industryJobsStatus
+        + ", industryJobsDetail=" + industryJobsDetail + ", industryJobsHistoryStatus=" + industryJobsHistoryStatus + ", industryJobsHistoryDetail="
+        + industryJobsHistoryDetail + ", killlogStatus=" + killlogStatus + ", killlogDetail=" + killlogDetail + ", mailBodiesStatus=" + mailBodiesStatus
+        + ", mailBodiesDetail=" + mailBodiesDetail + ", mailingListsStatus=" + mailingListsStatus + ", mailingListsDetail=" + mailingListsDetail
+        + ", mailMessagesStatus=" + mailMessagesStatus + ", mailMessagesDetail=" + mailMessagesDetail + ", marketOrdersStatus=" + marketOrdersStatus
+        + ", marketOrdersDetail=" + marketOrdersDetail + ", medalsStatus=" + medalsStatus + ", medalsDetail=" + medalsDetail + ", notificationsStatus="
+        + notificationsStatus + ", notificationsDetail=" + notificationsDetail + ", notificationTextsStatus=" + notificationTextsStatus
+        + ", notificationTextsDetail=" + notificationTextsDetail + ", planetaryColoniesStatus=" + planetaryColoniesStatus + ", planetaryColoniesDetail="
+        + planetaryColoniesDetail + ", researchStatus=" + researchStatus + ", researchDetail=" + researchDetail + ", skillInTrainingStatus="
+        + skillInTrainingStatus + ", skillInTrainingDetail=" + skillInTrainingDetail + ", skillQueueStatus=" + skillQueueStatus + ", skillQueueDetail="
+        + skillQueueDetail + ", standingsStatus=" + standingsStatus + ", standingsDetail=" + standingsDetail + ", upcomingCalendarEventsStatus="
+        + upcomingCalendarEventsStatus + ", upcomingCalendarEventsDetail=" + upcomingCalendarEventsDetail + ", walletJournalStatus=" + walletJournalStatus
+        + ", walletJournalDetail=" + walletJournalDetail + ", walletTransactionsStatus=" + walletTransactionsStatus + ", walletTransactionsDetail="
+        + walletTransactionsDetail + "]";
   }
 
   public static CapsuleerSyncTracker createOrGetUnfinishedTracker(
@@ -1559,6 +1602,9 @@ public class CapsuleerSyncTracker extends SyncTracker {
       } else if (next.characterSheetStatus == SyncState.SYNC_ERROR) {
         errorCount++;
         SyncTracker.incrementSummary("characterSheet", next.characterSheetDetail, data);
+      } else if (next.chatChannelsStatus == SyncState.SYNC_ERROR) {
+        errorCount++;
+        SyncTracker.incrementSummary("chatChannels", next.chatChannelsDetail, data);
       } else if (next.contactListStatus == SyncState.SYNC_ERROR) {
         errorCount++;
         SyncTracker.incrementSummary("contactList", next.contactListDetail, data);

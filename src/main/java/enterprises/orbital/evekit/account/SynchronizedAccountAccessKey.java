@@ -89,7 +89,7 @@ import io.swagger.annotations.ApiModelProperty;
 @ApiModel(
     description = "EveKit synchronized account access key")
 @JsonIgnoreProperties({
-    "account", "randomSeed", "accessMask"
+    "randomSeed", "accessMask"
 })
 public class SynchronizedAccountAccessKey {
   protected static final Logger            log      = Logger.getLogger(SynchronizedAccountAccessKey.class.getName());
@@ -132,6 +132,7 @@ public class SynchronizedAccountAccessKey {
   @JoinColumn(
       name = "aid",
       referencedColumnName = "aid")
+  @JsonProperty("account")
   private SynchronizedEveAccount account;
   // User readable name of this key. This should be unique for all keys on the same SynchronizedEveAccount.
   @ApiModelProperty(

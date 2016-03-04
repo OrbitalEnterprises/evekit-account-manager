@@ -19,7 +19,6 @@ import javax.persistence.Table;
 import javax.persistence.Transient;
 import javax.persistence.TypedQuery;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import enterprises.orbital.base.OrbitalProperties;
@@ -84,9 +83,6 @@ import io.swagger.annotations.ApiModelProperty;
 })
 @ApiModel(
     description = "EveKit synchronized account")
-@JsonIgnoreProperties({
-    "userAccount"
-})
 public class SynchronizedEveAccount {
   private static final Logger log              = Logger.getLogger(SynchronizedEveAccount.class.getName());
 
@@ -106,6 +102,7 @@ public class SynchronizedEveAccount {
   @JoinColumn(
       name = "uid",
       referencedColumnName = "uid")
+  @JsonProperty("userAccount")
   private EveKitUserAccount   userAccount;
   @ApiModelProperty(
       value = "Date (milliseconds UTC) when this account was created")

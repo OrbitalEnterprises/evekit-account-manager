@@ -23,7 +23,6 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.TypedQuery;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import enterprises.orbital.base.OrbitalProperties;
@@ -69,9 +68,6 @@ import io.swagger.annotations.ApiModelProperty;
 })
 @ApiModel(
     description = "Synchronization tracker base attributes")
-@JsonIgnoreProperties({
-    "account"
-})
 public abstract class SyncTracker {
   private static final Logger log = Logger.getLogger(SyncTracker.class.getName());
 
@@ -101,6 +97,7 @@ public abstract class SyncTracker {
   @JoinColumn(
       name = "aid",
       referencedColumnName = "aid")
+  @JsonProperty("account")
   protected SynchronizedEveAccount account;
   @ApiModelProperty(
       value = "Tracker start time (milliseconds UTC)")

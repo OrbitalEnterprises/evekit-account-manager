@@ -30,6 +30,7 @@ public enum AccountAccessMask {
                                // Character Specific Resources
                                ACCESS_CALENDAR_EVENT_ATTENDEES(15),
                                ACCESS_CHARACTER_SHEET(16),
+                               ACCESS_CHAT_CHANNELS(40),
                                ACCESS_CONTACT_NOTIFICATIONS(17),
                                ACCESS_MAIL(18),
                                ACCESS_MAILING_LISTS(19),

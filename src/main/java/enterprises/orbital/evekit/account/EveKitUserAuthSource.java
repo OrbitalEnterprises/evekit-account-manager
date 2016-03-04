@@ -22,7 +22,6 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.TypedQuery;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
@@ -66,11 +65,8 @@ import io.swagger.annotations.ApiModelProperty;
 })
 @ApiModel(
     description = "Authentication source for a user")
-@JsonIgnoreProperties({
-    "account"
-})
 @JsonSerialize(
-    typing = JsonSerialize.Typing.STATIC)
+    typing = JsonSerialize.Typing.DYNAMIC)
 public class EveKitUserAuthSource implements UserAuthSource {
   private static final Logger log  = Logger.getLogger(EveKitUserAuthSource.class.getName());
 
@@ -90,6 +86,7 @@ public class EveKitUserAuthSource implements UserAuthSource {
   @JoinColumn(
       name = "uid",
       referencedColumnName = "uid")
+  @JsonProperty("account")
   private EveKitUserAccount   account;
   @ApiModelProperty(
       value = "Name of authentication source")

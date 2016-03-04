@@ -44,7 +44,7 @@ import io.swagger.annotations.ApiModelProperty;
 @ApiModel(
     description = "User account")
 @JsonSerialize(
-    typing = JsonSerialize.Typing.STATIC)
+    typing = JsonSerialize.Typing.DYNAMIC)
 public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<String> {
   private static final Logger log                         = Logger.getLogger(EveKitUserAccount.class.getName());
 
