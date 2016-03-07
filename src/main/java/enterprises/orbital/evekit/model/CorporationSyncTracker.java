@@ -1482,7 +1482,7 @@ public class CorporationSyncTracker extends SyncTracker {
 
   public static List<CorporationSyncTracker> getHistory(
                                                         final SynchronizedEveAccount owner,
-                                                        final Long contid,
+                                                        final long contid,
                                                         final int maxResults) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<List<CorporationSyncTracker>>() {
@@ -1491,7 +1491,7 @@ public class CorporationSyncTracker extends SyncTracker {
           TypedQuery<CorporationSyncTracker> getter = EveKitUserAccountProvider.getFactory().getEntityManager()
               .createNamedQuery("CorporationSyncTracker.getHistory", CorporationSyncTracker.class);
           getter.setParameter("account", owner);
-          getter.setParameter("start", contid == null ? new Date(Long.MAX_VALUE) : new Date(contid));
+          getter.setParameter("start", contid < 0 ? Long.MAX_VALUE : contid);
           getter.setMaxResults(maxResults);
           return getter.getResultList();
         }

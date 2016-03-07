@@ -177,7 +177,7 @@ public enum AccountAccessMask {
   public static byte[] unstringifyMask(
                                        String maskString) {
     List<AccountAccessMask> members = new ArrayList<AccountAccessMask>();
-    for (String next : maskString.split("|")) {
+    for (String next : maskString.split("\\|")) {
       try {
         AccountAccessMask nextMask = AccountAccessMask.valueOf(next);
         if (nextMask != null) members.add(nextMask);

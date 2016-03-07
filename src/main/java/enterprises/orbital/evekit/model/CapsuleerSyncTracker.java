@@ -1533,7 +1533,7 @@ public class CapsuleerSyncTracker extends SyncTracker {
 
   public static List<CapsuleerSyncTracker> getHistory(
                                                       final SynchronizedEveAccount owner,
-                                                      final Long contid,
+                                                      final long contid,
                                                       final int maxResults) {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<List<CapsuleerSyncTracker>>() {
@@ -1542,7 +1542,7 @@ public class CapsuleerSyncTracker extends SyncTracker {
           TypedQuery<CapsuleerSyncTracker> getter = EveKitUserAccountProvider.getFactory().getEntityManager()
               .createNamedQuery("CapsuleerSyncTracker.getHistory", CapsuleerSyncTracker.class);
           getter.setParameter("account", owner);
-          getter.setParameter("start", contid == null ? new Date(Long.MAX_VALUE) : new Date(contid));
+          getter.setParameter("start", contid < 0 ? Long.MAX_VALUE : contid);
           getter.setMaxResults(maxResults);
           return getter.getResultList();
         }

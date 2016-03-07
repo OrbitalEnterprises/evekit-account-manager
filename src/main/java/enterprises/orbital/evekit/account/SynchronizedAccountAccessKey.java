@@ -84,7 +84,7 @@ import io.swagger.annotations.ApiModelProperty;
         query = "SELECT c FROM SynchronizedAccountAccessKey c where c.account = :account"),
     @NamedQuery(
         name = "SynchronizedAccountAccessKey.findByAccessKey",
-        query = "SELECT c FROM SynchronizedAccountAccessKey c where c.accessKey = :accesskey"),
+        query = "SELECT c FROM SynchronizedAccountAccessKey c where c.accessKey.value = :accesskey"),
 })
 @ApiModel(
     description = "EveKit synchronized account access key")
@@ -364,6 +364,7 @@ public class SynchronizedAccountAccessKey {
           result.limit = limit;
           result.accessMask = accessMask;
           result.randomSeed = seed;
+          result.accessKey = GeneralSequenceNumber.create();
           return EveKitUserAccountProvider.getFactory().getEntityManager().merge(result);
         }
       });
