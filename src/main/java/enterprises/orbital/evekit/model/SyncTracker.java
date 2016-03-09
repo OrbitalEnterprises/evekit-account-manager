@@ -64,7 +64,6 @@ import io.swagger.annotations.ApiModelProperty;
     @NamedQuery(
         name = "SyncTracker.getLatestFinished",
         query = "SELECT c FROM SyncTracker c where c.account = :account and c.finished = true order by c.syncEnd desc"),
-
 })
 @ApiModel(
     description = "Synchronization tracker base attributes")
