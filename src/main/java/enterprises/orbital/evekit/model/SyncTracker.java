@@ -318,6 +318,7 @@ public abstract class SyncTracker {
           TypedQuery<SyncTracker> getter = EveKitUserAccountProvider.getFactory().getEntityManager().createNamedQuery("SyncTracker.getLatestFinished",
                                                                                                                       SyncTracker.class);
           getter.setParameter("account", owner);
+          getter.setMaxResults(1);
           try {
             return (A) getter.getSingleResult();
           } catch (NoResultException e) {
