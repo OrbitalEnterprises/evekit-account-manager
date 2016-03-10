@@ -98,7 +98,7 @@ public class CapsuleerSyncTracker extends SyncTracker {
   private String                characterSheetDetail;
   @ApiModelProperty(
       value = "Chat channel status")
-  @JsonProperty("chatChannelStatus")
+  @JsonProperty("chatChannelsStatus")
   private SyncTracker.SyncState chatChannelsStatus;
   @ApiModelProperty(
       value = "Chat channel detail message")
