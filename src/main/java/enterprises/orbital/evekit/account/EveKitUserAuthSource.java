@@ -101,8 +101,7 @@ public class EveKitUserAuthSource implements UserAuthSource {
   @JsonProperty("details")
   @Lob
   @Column(
-      name = "details",
-      columnDefinition = "CLOB NOT NULL")
+      length = 102400)
   private String              details;
   @ApiModelProperty(
       value = "Last time (milliseconds UTC) this source was used to authenticate")
