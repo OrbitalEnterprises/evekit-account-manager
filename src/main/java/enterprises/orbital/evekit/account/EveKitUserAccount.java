@@ -80,6 +80,10 @@ public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<Str
   @JsonProperty("last")
   protected long              last                        = -1;
 
+  public long getID() {
+    return uid;
+  }
+
   @Override
   public String getUid() {
     return String.valueOf(uid);
