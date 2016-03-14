@@ -132,6 +132,8 @@ public class SynchronizedAccountAccessKey {
   @JoinColumn(
       name = "aid",
       referencedColumnName = "aid")
+  @ApiModelProperty(
+      value = "Key owner")
   @JsonProperty("account")
   private SynchronizedEveAccount account;
   // User readable name of this key. This should be unique for all keys on the same SynchronizedEveAccount.
