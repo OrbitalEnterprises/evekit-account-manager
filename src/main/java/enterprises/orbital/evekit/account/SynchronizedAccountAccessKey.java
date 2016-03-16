@@ -433,7 +433,7 @@ public class SynchronizedAccountAccessKey {
         public SynchronizedAccountAccessKey run() throws Exception {
           TypedQuery<SynchronizedAccountAccessKey> getter = EveKitUserAccountProvider.getFactory().getEntityManager()
               .createNamedQuery("SynchronizedAccountAccessKey.findByAccessKey", SynchronizedAccountAccessKey.class);
-          getter.setParameter("acesskey", accessKey);
+          getter.setParameter("accesskey", accessKey);
           try {
             return getter.getSingleResult();
           } catch (NoResultException e) {
