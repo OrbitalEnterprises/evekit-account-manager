@@ -3,50 +3,56 @@
   <parent>
     <groupId>enterprises.orbital</groupId>
     <artifactId>license</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
   </parent>
   <groupId>enterprises.orbital.evekit</groupId>
   <artifactId>account-manager</artifactId>
-  <version>1.0.2</version>
+  <version>2.0.0</version>
   <name>EveKit Account Manager</name>
   <description>EveKit account manager services</description>
   <url>https://github.com/OrbitalEnterprises/evekit-account-manager</url>
   <scm>
   	<url>https://github.com/OrbitalEnterprises/evekit-account-manager</url>
   	<connection>scm:git:https://github.com/OrbitalEnterprises/evekit-account-manager.git</connection>
-  	<tag>rel_1_0_2</tag>
+  	<tag>rel_2_0_0</tag>
   	<developerConnection>scm:git:git@github.com:OrbitalEnterprises/evekit-account-manager.git</developerConnection>
   </scm>
+  <properties>
+    <orbital.toolchain.version>2.0.0</orbital.toolchain.version>
+    <swagger.version>1.5.7</swagger.version>
+    <jackson.core.version>2.4.5</jackson.core.version>
+    <hsqldb.version>2.3.3</hsqldb.version>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>enterprises.orbital</groupId>
       <artifactId>oauth</artifactId>
-      <version>1.0.2</version>
+      <version>${orbital.toolchain.version}</version>
     </dependency>
     <dependency>
       <groupId>enterprises.orbital</groupId>
       <artifactId>db-manager</artifactId>
-      <version>1.0.2</version>
+      <version>${orbital.toolchain.version}</version>
     </dependency>
     <dependency>
       <groupId>io.swagger</groupId>
       <artifactId>swagger-annotations</artifactId>
-      <version>1.5.7</version>
+      <version>${swagger.version}</version>
     </dependency> 
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-annotations</artifactId>
-      <version>2.4.5</version>
+      <version>${jackson.core.version}</version>
     </dependency>    
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
-      <version>2.4.5</version>
+      <version>${jackson.core.version}</version>
     </dependency>    
     <dependency>
 	    <groupId>org.hsqldb</groupId>
 	    <artifactId>hsqldb</artifactId>
-	    <version>2.3.3</version>
+	    <version>${hsqldb.version}</version>
 	    <scope>test</scope>
     </dependency>    
   </dependencies>
