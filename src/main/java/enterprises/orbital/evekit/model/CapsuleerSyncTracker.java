@@ -577,7 +577,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
         break;
 
       case SYNC_CHAR_PARTIALCHARACTERSHEET:
-        if (partialCharacterSheetStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
+        // Always try the full character sheet first
+        if (characterSheetStatus != SyncTracker.SyncState.NOT_PROCESSED && partialCharacterSheetStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
         break;
 
       case SYNC_CHAR_CHATCHANNELS:
@@ -676,7 +677,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
         break;
 
       case SYNC_CHAR_SKILLS:
-        if (skillsStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
+        // Always try the full character sheet first
+        if (characterSheetStatus != SyncTracker.SyncState.NOT_PROCESSED && skillsStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
         break;
 
       case SYNC_CHAR_STANDINGS:
