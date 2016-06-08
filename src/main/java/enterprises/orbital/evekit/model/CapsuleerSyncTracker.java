@@ -97,6 +97,14 @@ public class CapsuleerSyncTracker extends SyncTracker {
   @JsonProperty("characterSheetDetail")
   private String                characterSheetDetail;
   @ApiModelProperty(
+      value = "Partial character sheet status (clones)")
+  @JsonProperty("partialCharacterSheetStatus")
+  private SyncTracker.SyncState partialCharacterSheetStatus;
+  @ApiModelProperty(
+      value = "Partial character sheet detail message (clones)")
+  @JsonProperty("partialCharacterSheetDetail")
+  private String                partialCharacterSheetDetail;
+  @ApiModelProperty(
       value = "Chat channel status")
   @JsonProperty("chatChannelsStatus")
   private SyncTracker.SyncState chatChannelsStatus;
@@ -281,6 +289,14 @@ public class CapsuleerSyncTracker extends SyncTracker {
   @JsonProperty("skillQueueDetail")
   private String                skillQueueDetail;
   @ApiModelProperty(
+      value = "Skills status")
+  @JsonProperty("skillsStatus")
+  private SyncTracker.SyncState skillsStatus;
+  @ApiModelProperty(
+      value = "Skills detail message")
+  @JsonProperty("skillsDetail")
+  private String                skillsDetail;
+  @ApiModelProperty(
       value = "Standings status")
   @JsonProperty("standingsStatus")
   private SyncTracker.SyncState standingsStatus;
@@ -319,6 +335,7 @@ public class CapsuleerSyncTracker extends SyncTracker {
     assetListStatus = SyncTracker.SyncState.NOT_PROCESSED;
     calendarEventAttendeesStatus = SyncTracker.SyncState.NOT_PROCESSED;
     characterSheetStatus = SyncTracker.SyncState.NOT_PROCESSED;
+    partialCharacterSheetStatus = SyncTracker.SyncState.NOT_PROCESSED;
     chatChannelsStatus = SyncTracker.SyncState.NOT_PROCESSED;
     contactListStatus = SyncTracker.SyncState.NOT_PROCESSED;
     contactNotificationsStatus = SyncTracker.SyncState.NOT_PROCESSED;
@@ -342,6 +359,7 @@ public class CapsuleerSyncTracker extends SyncTracker {
     researchStatus = SyncTracker.SyncState.NOT_PROCESSED;
     skillInTrainingStatus = SyncTracker.SyncState.NOT_PROCESSED;
     skillQueueStatus = SyncTracker.SyncState.NOT_PROCESSED;
+    skillsStatus = SyncTracker.SyncState.NOT_PROCESSED;
     standingsStatus = SyncTracker.SyncState.NOT_PROCESSED;
     upcomingCalendarEventsStatus = SyncTracker.SyncState.NOT_PROCESSED;
     walletJournalStatus = SyncTracker.SyncState.NOT_PROCESSED;
@@ -377,6 +395,11 @@ public class CapsuleerSyncTracker extends SyncTracker {
     case SYNC_CHAR_CHARACTERSHEET:
       setCharacterSheetStatus(status);
       setCharacterSheetDetail(msg);
+      break;
+
+    case SYNC_CHAR_PARTIALCHARACTERSHEET:
+      setPartialCharacterSheetStatus(status);
+      setPartialCharacterSheetDetail(msg);
       break;
 
     case SYNC_CHAR_CHATCHANNELS:
@@ -494,6 +517,11 @@ public class CapsuleerSyncTracker extends SyncTracker {
       setSkillQueueDetail(msg);
       break;
 
+    case SYNC_CHAR_SKILLS:
+      setSkillsStatus(status);
+      setSkillsDetail(msg);
+      break;
+
     case SYNC_CHAR_STANDINGS:
       setStandingsStatus(status);
       setStandingsDetail(msg);
@@ -546,6 +574,10 @@ public class CapsuleerSyncTracker extends SyncTracker {
 
       case SYNC_CHAR_CHARACTERSHEET:
         if (characterSheetStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
+        break;
+
+      case SYNC_CHAR_PARTIALCHARACTERSHEET:
+        if (partialCharacterSheetStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
         break;
 
       case SYNC_CHAR_CHATCHANNELS:
@@ -641,6 +673,10 @@ public class CapsuleerSyncTracker extends SyncTracker {
 
       case SYNC_CHAR_SKILLQUEUE:
         if (skillQueueStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
+        break;
+
+      case SYNC_CHAR_SKILLS:
+        if (skillsStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
         break;
 
       case SYNC_CHAR_STANDINGS:
@@ -758,6 +794,24 @@ public class CapsuleerSyncTracker extends SyncTracker {
   public void setCharacterSheetDetail(
                                       String characterSheetDetail) {
     this.characterSheetDetail = characterSheetDetail;
+  }
+
+  public SyncTracker.SyncState getPartialCharacterSheetStatus() {
+    return partialCharacterSheetStatus;
+  }
+
+  public void setPartialCharacterSheetStatus(
+                                             SyncTracker.SyncState partialCharacterSheetStatus) {
+    this.partialCharacterSheetStatus = partialCharacterSheetStatus;
+  }
+
+  public String getPartialCharacterSheetDetail() {
+    return partialCharacterSheetDetail;
+  }
+
+  public void setPartialCharacterSheetDetail(
+                                             String partialCharacterSheetDetail) {
+    this.partialCharacterSheetDetail = partialCharacterSheetDetail;
   }
 
   public SyncTracker.SyncState getChatChannelsStatus() {
@@ -1174,6 +1228,24 @@ public class CapsuleerSyncTracker extends SyncTracker {
     this.skillQueueDetail = skillQueueDetail;
   }
 
+  public SyncTracker.SyncState getSkillsStatus() {
+    return skillsStatus;
+  }
+
+  public void setSkillsStatus(
+                              SyncTracker.SyncState skillsStatus) {
+    this.skillsStatus = skillsStatus;
+  }
+
+  public String getSkillsDetail() {
+    return skillsDetail;
+  }
+
+  public void setSkillsDetail(
+                              String skillsDetail) {
+    this.skillsDetail = skillsDetail;
+  }
+
   public SyncTracker.SyncState getStandingsStatus() {
     return standingsStatus;
   }
@@ -1572,7 +1644,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
   }
 
   public static String summarizeErrors(
-                                       Date day) throws IOException {
+                                       Date day)
+    throws IOException {
     StringBuilder summary = new StringBuilder();
     summary.append("Capsuleer Sync Tracker Error Summary on ");
     long days = day.getTime() / (1000 * 60 * 60 * 24);
