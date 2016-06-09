@@ -80,7 +80,7 @@ public enum SynchronizationState {
 
   public boolean isAllowed(
                            long test) {
-    return (test & mask) != 0;
+    return (test & mask) != 0L;
   }
 
 }
