@@ -70,7 +70,10 @@ public enum SynchronizationState {
                                   SYNC_CORP_STARBASELIST(524288L),
                                   SYNC_CORP_STARBASEDETAIL(131072L),
                                   SYNC_CORP_CORPTITLES(4194304L),
-                                  SYNC_CORP_END(-1);
+                                  SYNC_CORP_END(-1),
+                                  SYNC_REF_START(-1),
+                                  SYNC_REF_SERVER_SERVERSTATUS(-1),
+                                  SYNC_REF_END(-1);
 
   private final long mask;
 
