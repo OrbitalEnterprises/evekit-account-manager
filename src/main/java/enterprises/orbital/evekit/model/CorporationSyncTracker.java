@@ -303,6 +303,14 @@ public class CorporationSyncTracker extends SyncTracker {
       value = "Corporation titles detail message")
   @JsonProperty("corpTitlesDetail")
   private String                corpTitlesDetail;
+  @ApiModelProperty(
+      value = "Locations status")
+  @JsonProperty("locationsStatus")
+  private SyncTracker.SyncState locationsStatus;
+  @ApiModelProperty(
+      value = "Locations detail message")
+  @JsonProperty("locationsDetail")
+  private String                locationsDetail;
 
   public CorporationSyncTracker() {
     accountBalanceStatus = SyncTracker.SyncState.NOT_PROCESSED;
@@ -336,6 +344,7 @@ public class CorporationSyncTracker extends SyncTracker {
     starbaseListStatus = SyncTracker.SyncState.NOT_PROCESSED;
     starbaseDetailStatus = SyncTracker.SyncState.NOT_PROCESSED;
     corpTitlesStatus = SyncTracker.SyncState.NOT_PROCESSED;
+    locationsStatus = SyncTracker.SyncState.NOT_PROCESSED;
   }
 
   @Override
@@ -495,6 +504,11 @@ public class CorporationSyncTracker extends SyncTracker {
       setCorpTitlesDetail(msg);
       break;
 
+    case SYNC_CORP_LOCATIONS:
+      setLocationsStatus(status);
+      setLocationsDetail(msg);
+      break;
+
     default:
       // NOP
       ;
@@ -631,6 +645,11 @@ public class CorporationSyncTracker extends SyncTracker {
 
       case SYNC_CORP_CORPTITLES:
         if (corpTitlesStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
+        break;
+
+      case SYNC_CORP_LOCATIONS:
+        // Only sync locations after sync'ing assets
+        if (assetListStatus != SyncTracker.SyncState.NOT_PROCESSED && locationsStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
         break;
 
       case SYNC_CORP_START:
@@ -1202,6 +1221,24 @@ public class CorporationSyncTracker extends SyncTracker {
     return corpTitlesStatus;
   }
 
+  public SyncTracker.SyncState getLocationsStatus() {
+    return locationsStatus;
+  }
+
+  public void setLocationsStatus(
+                                 SyncTracker.SyncState locationsStatus) {
+    this.locationsStatus = locationsStatus;
+  }
+
+  public String getLocationsDetail() {
+    return locationsDetail;
+  }
+
+  public void setLocationsDetail(
+                                 String locationsDetail) {
+    this.locationsDetail = locationsDetail;
+  }
+
   @Override
   public String toString() {
     return "CorporationSyncTracker [accountBalanceStatus=" + accountBalanceStatus + ", accountBalanceDetail=" + accountBalanceDetail + ", assetListStatus="
@@ -1225,7 +1262,7 @@ public class CorporationSyncTracker extends SyncTracker {
         + outpostDetailStatus + ", outpostDetailDetail=" + outpostDetailDetail + ", shareholderStatus=" + shareholderStatus + ", shareholderDetail="
         + shareholderDetail + ", starbaseListStatus=" + starbaseListStatus + ", starbaseListDetail=" + starbaseListDetail + ", starbaseDetailStatus="
         + starbaseDetailStatus + ", starbaseDetailDetail=" + starbaseDetailDetail + ", corpTitlesStatus=" + corpTitlesStatus + ", corpTitlesDetail="
-        + corpTitlesDetail + "]";
+        + corpTitlesDetail + ", locationsStatus=" + locationsStatus + ", locationsDetail=" + locationsDetail + "]";
   }
 
   @Override
@@ -1268,6 +1305,8 @@ public class CorporationSyncTracker extends SyncTracker {
     result = prime * result + ((industryJobsStatus == null) ? 0 : industryJobsStatus.hashCode());
     result = prime * result + ((killlogDetail == null) ? 0 : killlogDetail.hashCode());
     result = prime * result + ((killlogStatus == null) ? 0 : killlogStatus.hashCode());
+    result = prime * result + ((locationsDetail == null) ? 0 : locationsDetail.hashCode());
+    result = prime * result + ((locationsStatus == null) ? 0 : locationsStatus.hashCode());
     result = prime * result + ((marketOrdersDetail == null) ? 0 : marketOrdersDetail.hashCode());
     result = prime * result + ((marketOrdersStatus == null) ? 0 : marketOrdersStatus.hashCode());
     result = prime * result + ((memberMedalsDetail == null) ? 0 : memberMedalsDetail.hashCode());
@@ -1376,6 +1415,10 @@ public class CorporationSyncTracker extends SyncTracker {
       if (other.killlogDetail != null) return false;
     } else if (!killlogDetail.equals(other.killlogDetail)) return false;
     if (killlogStatus != other.killlogStatus) return false;
+    if (locationsDetail == null) {
+      if (other.locationsDetail != null) return false;
+    } else if (!locationsDetail.equals(other.locationsDetail)) return false;
+    if (locationsStatus != other.locationsStatus) return false;
     if (marketOrdersDetail == null) {
       if (other.marketOrdersDetail != null) return false;
     } else if (!marketOrdersDetail.equals(other.marketOrdersDetail)) return false;
@@ -1521,7 +1564,8 @@ public class CorporationSyncTracker extends SyncTracker {
   }
 
   public static String summarizeErrors(
-                                       Date day) throws IOException {
+                                       Date day)
+    throws IOException {
     StringBuilder summary = new StringBuilder();
     summary.append("Corporation Sync Tracker Error Summary on ");
     long days = day.getTime() / (1000 * 60 * 60 * 24);
@@ -1629,6 +1673,9 @@ public class CorporationSyncTracker extends SyncTracker {
       } else if (next.corpTitlesStatus == SyncState.SYNC_ERROR) {
         errorCount++;
         SyncTracker.incrementSummary("corpTitles", next.corpTitlesDetail, data);
+      } else if (next.locationsStatus == SyncState.SYNC_ERROR) {
+        errorCount++;
+        SyncTracker.incrementSummary("locations", next.locationsDetail, data);
       }
     }
 

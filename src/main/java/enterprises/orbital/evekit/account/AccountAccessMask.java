@@ -25,6 +25,7 @@ public enum AccountAccessMask {
                                ACCESS_STANDINGS(11),
                                ACCESS_WALLET_JOURNAL(12),
                                ACCESS_WALLET_TRANSACTIONS(13),
+                               ACCESS_LOCATIONS(41),
                                ALLOW_METADATA_CHANGES(14),
 
                                // Character Specific Resources
