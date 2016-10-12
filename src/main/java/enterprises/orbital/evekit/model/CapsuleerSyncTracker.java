@@ -328,6 +328,14 @@ public class CapsuleerSyncTracker extends SyncTracker {
       value = "Wallet transaction detail message")
   @JsonProperty("walletTransactionsDetail")
   private String                walletTransactionsDetail;
+  @ApiModelProperty(
+      value = "Locations status")
+  @JsonProperty("locationsStatus")
+  private SyncTracker.SyncState locationsStatus;
+  @ApiModelProperty(
+      value = "Locations detail message")
+  @JsonProperty("locationsDetail")
+  private String                locationsDetail;
 
   public CapsuleerSyncTracker() {
     accountStatusStatus = SyncTracker.SyncState.NOT_PROCESSED;
@@ -364,6 +372,7 @@ public class CapsuleerSyncTracker extends SyncTracker {
     upcomingCalendarEventsStatus = SyncTracker.SyncState.NOT_PROCESSED;
     walletJournalStatus = SyncTracker.SyncState.NOT_PROCESSED;
     walletTransactionsStatus = SyncTracker.SyncState.NOT_PROCESSED;
+    locationsStatus = SyncTracker.SyncState.NOT_PROCESSED;
   }
 
   @Override
@@ -542,6 +551,11 @@ public class CapsuleerSyncTracker extends SyncTracker {
       setWalletTransactionsDetail(msg);
       break;
 
+    case SYNC_CHAR_LOCATIONS:
+      setLocationsStatus(status);
+      setLocationsDetail(msg);
+      break;
+
     default:
       // NOP
       ;
@@ -695,6 +709,11 @@ public class CapsuleerSyncTracker extends SyncTracker {
 
       case SYNC_CHAR_WALLETTRANSACTIONS:
         if (walletTransactionsStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
+        break;
+
+      case SYNC_CHAR_LOCATIONS:
+        // Only sync locations after sync'ing assets
+        if (assetListStatus != SyncTracker.SyncState.NOT_PROCESSED && locationsStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
         break;
 
       case SYNC_CHAR_START:
@@ -1320,6 +1339,24 @@ public class CapsuleerSyncTracker extends SyncTracker {
     this.walletTransactionsDetail = walletTransactionsDetail;
   }
 
+  public SyncTracker.SyncState getLocationsStatus() {
+    return locationsStatus;
+  }
+
+  public void setLocationsStatus(
+                                 SyncTracker.SyncState locationsStatus) {
+    this.locationsStatus = locationsStatus;
+  }
+
+  public String getLocationsDetail() {
+    return locationsDetail;
+  }
+
+  public void setLocationsDetail(
+                                 String locationsDetail) {
+    this.locationsDetail = locationsDetail;
+  }
+
   @Override
   public int hashCode() {
     final int prime = 31;
@@ -1358,6 +1395,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     result = prime * result + ((industryJobsStatus == null) ? 0 : industryJobsStatus.hashCode());
     result = prime * result + ((killlogDetail == null) ? 0 : killlogDetail.hashCode());
     result = prime * result + ((killlogStatus == null) ? 0 : killlogStatus.hashCode());
+    result = prime * result + ((locationsDetail == null) ? 0 : locationsDetail.hashCode());
+    result = prime * result + ((locationsStatus == null) ? 0 : locationsStatus.hashCode());
     result = prime * result + ((mailBodiesDetail == null) ? 0 : mailBodiesDetail.hashCode());
     result = prime * result + ((mailBodiesStatus == null) ? 0 : mailBodiesStatus.hashCode());
     result = prime * result + ((mailMessagesDetail == null) ? 0 : mailMessagesDetail.hashCode());
@@ -1372,6 +1411,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     result = prime * result + ((notificationTextsStatus == null) ? 0 : notificationTextsStatus.hashCode());
     result = prime * result + ((notificationsDetail == null) ? 0 : notificationsDetail.hashCode());
     result = prime * result + ((notificationsStatus == null) ? 0 : notificationsStatus.hashCode());
+    result = prime * result + ((partialCharacterSheetDetail == null) ? 0 : partialCharacterSheetDetail.hashCode());
+    result = prime * result + ((partialCharacterSheetStatus == null) ? 0 : partialCharacterSheetStatus.hashCode());
     result = prime * result + ((planetaryColoniesDetail == null) ? 0 : planetaryColoniesDetail.hashCode());
     result = prime * result + ((planetaryColoniesStatus == null) ? 0 : planetaryColoniesStatus.hashCode());
     result = prime * result + ((researchDetail == null) ? 0 : researchDetail.hashCode());
@@ -1380,6 +1421,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     result = prime * result + ((skillInTrainingStatus == null) ? 0 : skillInTrainingStatus.hashCode());
     result = prime * result + ((skillQueueDetail == null) ? 0 : skillQueueDetail.hashCode());
     result = prime * result + ((skillQueueStatus == null) ? 0 : skillQueueStatus.hashCode());
+    result = prime * result + ((skillsDetail == null) ? 0 : skillsDetail.hashCode());
+    result = prime * result + ((skillsStatus == null) ? 0 : skillsStatus.hashCode());
     result = prime * result + ((standingsDetail == null) ? 0 : standingsDetail.hashCode());
     result = prime * result + ((standingsStatus == null) ? 0 : standingsStatus.hashCode());
     result = prime * result + ((upcomingCalendarEventsDetail == null) ? 0 : upcomingCalendarEventsDetail.hashCode());
@@ -1466,6 +1509,10 @@ public class CapsuleerSyncTracker extends SyncTracker {
       if (other.killlogDetail != null) return false;
     } else if (!killlogDetail.equals(other.killlogDetail)) return false;
     if (killlogStatus != other.killlogStatus) return false;
+    if (locationsDetail == null) {
+      if (other.locationsDetail != null) return false;
+    } else if (!locationsDetail.equals(other.locationsDetail)) return false;
+    if (locationsStatus != other.locationsStatus) return false;
     if (mailBodiesDetail == null) {
       if (other.mailBodiesDetail != null) return false;
     } else if (!mailBodiesDetail.equals(other.mailBodiesDetail)) return false;
@@ -1494,6 +1541,10 @@ public class CapsuleerSyncTracker extends SyncTracker {
       if (other.notificationsDetail != null) return false;
     } else if (!notificationsDetail.equals(other.notificationsDetail)) return false;
     if (notificationsStatus != other.notificationsStatus) return false;
+    if (partialCharacterSheetDetail == null) {
+      if (other.partialCharacterSheetDetail != null) return false;
+    } else if (!partialCharacterSheetDetail.equals(other.partialCharacterSheetDetail)) return false;
+    if (partialCharacterSheetStatus != other.partialCharacterSheetStatus) return false;
     if (planetaryColoniesDetail == null) {
       if (other.planetaryColoniesDetail != null) return false;
     } else if (!planetaryColoniesDetail.equals(other.planetaryColoniesDetail)) return false;
@@ -1510,6 +1561,10 @@ public class CapsuleerSyncTracker extends SyncTracker {
       if (other.skillQueueDetail != null) return false;
     } else if (!skillQueueDetail.equals(other.skillQueueDetail)) return false;
     if (skillQueueStatus != other.skillQueueStatus) return false;
+    if (skillsDetail == null) {
+      if (other.skillsDetail != null) return false;
+    } else if (!skillsDetail.equals(other.skillsDetail)) return false;
+    if (skillsStatus != other.skillsStatus) return false;
     if (standingsDetail == null) {
       if (other.standingsDetail != null) return false;
     } else if (!standingsDetail.equals(other.standingsDetail)) return false;
@@ -1534,7 +1589,8 @@ public class CapsuleerSyncTracker extends SyncTracker {
     return "CapsuleerSyncTracker [accountStatusStatus=" + accountStatusStatus + ", accountStatusDetail=" + accountStatusDetail + ", accountBalanceStatus="
         + accountBalanceStatus + ", accountBalanceDetail=" + accountBalanceDetail + ", assetListStatus=" + assetListStatus + ", assetListDetail="
         + assetListDetail + ", calendarEventAttendeesStatus=" + calendarEventAttendeesStatus + ", calendarEventAttendeesDetail=" + calendarEventAttendeesDetail
-        + ", characterSheetStatus=" + characterSheetStatus + ", characterSheetDetail=" + characterSheetDetail + ", chatChannelsStatus=" + chatChannelsStatus
+        + ", characterSheetStatus=" + characterSheetStatus + ", characterSheetDetail=" + characterSheetDetail + ", partialCharacterSheetStatus="
+        + partialCharacterSheetStatus + ", partialCharacterSheetDetail=" + partialCharacterSheetDetail + ", chatChannelsStatus=" + chatChannelsStatus
         + ", chatChannelsDetail=" + chatChannelsDetail + ", contactListStatus=" + contactListStatus + ", contactListDetail=" + contactListDetail
         + ", contactNotificationsStatus=" + contactNotificationsStatus + ", contactNotificationsDetail=" + contactNotificationsDetail + ", blueprintsStatus="
         + blueprintsStatus + ", blueprintsDetail=" + blueprintsDetail + ", bookmarksStatus=" + bookmarksStatus + ", bookmarksDetail=" + bookmarksDetail
@@ -1550,10 +1606,11 @@ public class CapsuleerSyncTracker extends SyncTracker {
         + ", notificationTextsDetail=" + notificationTextsDetail + ", planetaryColoniesStatus=" + planetaryColoniesStatus + ", planetaryColoniesDetail="
         + planetaryColoniesDetail + ", researchStatus=" + researchStatus + ", researchDetail=" + researchDetail + ", skillInTrainingStatus="
         + skillInTrainingStatus + ", skillInTrainingDetail=" + skillInTrainingDetail + ", skillQueueStatus=" + skillQueueStatus + ", skillQueueDetail="
-        + skillQueueDetail + ", standingsStatus=" + standingsStatus + ", standingsDetail=" + standingsDetail + ", upcomingCalendarEventsStatus="
-        + upcomingCalendarEventsStatus + ", upcomingCalendarEventsDetail=" + upcomingCalendarEventsDetail + ", walletJournalStatus=" + walletJournalStatus
-        + ", walletJournalDetail=" + walletJournalDetail + ", walletTransactionsStatus=" + walletTransactionsStatus + ", walletTransactionsDetail="
-        + walletTransactionsDetail + "]";
+        + skillQueueDetail + ", skillsStatus=" + skillsStatus + ", skillsDetail=" + skillsDetail + ", standingsStatus=" + standingsStatus + ", standingsDetail="
+        + standingsDetail + ", upcomingCalendarEventsStatus=" + upcomingCalendarEventsStatus + ", upcomingCalendarEventsDetail=" + upcomingCalendarEventsDetail
+        + ", walletJournalStatus=" + walletJournalStatus + ", walletJournalDetail=" + walletJournalDetail + ", walletTransactionsStatus="
+        + walletTransactionsStatus + ", walletTransactionsDetail=" + walletTransactionsDetail + ", locationsStatus=" + locationsStatus + ", locationsDetail="
+        + locationsDetail + "]";
   }
 
   public static CapsuleerSyncTracker createOrGetUnfinishedTracker(
@@ -1758,6 +1815,9 @@ public class CapsuleerSyncTracker extends SyncTracker {
       } else if (next.walletTransactionsStatus == SyncState.SYNC_ERROR) {
         errorCount++;
         SyncTracker.incrementSummary("walletTransactions", next.walletTransactionsDetail, data);
+      } else if (next.locationsStatus == SyncState.SYNC_ERROR) {
+        errorCount++;
+        SyncTracker.incrementSummary("locations", next.locationsDetail, data);
       }
     }
 
