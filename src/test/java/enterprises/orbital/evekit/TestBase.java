@@ -27,17 +27,18 @@ public class TestBase {
   public void tearDown() throws IOException {}
 
   protected static Random             GEN             = new Random(
-                                                          Long.parseLong(System.getProperty("test.seed", "0")) == 0 ? OrbitalProperties.getCurrentTime()
-                                                              : Long.parseLong(System.getProperty("test.seed", "0")));
+      Long.parseLong(System.getProperty("test.seed", "0")) == 0 ? OrbitalProperties.getCurrentTime() : Long.parseLong(System.getProperty("test.seed", "0")));
   protected static final int          MAX_RANDOM      = 1 << 20;
   protected static final Set<Long>    UNIQUE_LONGS    = new HashSet<Long>();
   protected static final Set<Integer> UNIQUE_INTEGERS = new HashSet<Integer>();
 
-  public static void changeSeed(long seed) {
+  public static void changeSeed(
+                                long seed) {
     GEN = new Random(seed);
   }
 
-  public static String getRandomText(int length) {
+  public static String getRandomText(
+                                     int length) {
     char[] alpha = "aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ ".toCharArray();
     StringBuilder builder = new StringBuilder();
     for (int i = 0; i < length; i++) {
@@ -50,7 +51,8 @@ public class TestBase {
     return GEN.nextInt(MAX_RANDOM) + 1;
   }
 
-  public static int getRandomInt(int max) {
+  public static int getRandomInt(
+                                 int max) {
     return GEN.nextInt(max);
   }
 
@@ -62,7 +64,8 @@ public class TestBase {
     return val;
   }
 
-  public static long getRandomLong(long max) {
+  public static long getRandomLong(
+                                   long max) {
     long next = getRandomLong();
     while (next >= max) {
       next = getRandomLong();
@@ -70,7 +73,8 @@ public class TestBase {
     return next;
   }
 
-  public static double getRandomDouble(double max) {
+  public static double getRandomDouble(
+                                       double max) {
     return GEN.nextDouble() * max;
   }
 
@@ -96,7 +100,8 @@ public class TestBase {
     return val;
   }
 
-  public static BigDecimal getRandomBigDecimal(int i) {
+  public static BigDecimal getRandomBigDecimal(
+                                               int i) {
     return (new BigDecimal(Math.abs(GEN.nextGaussian() * i))).setScale(2, RoundingMode.HALF_UP);
   }
 
