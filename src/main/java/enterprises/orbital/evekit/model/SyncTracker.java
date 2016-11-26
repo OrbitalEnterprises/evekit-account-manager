@@ -53,7 +53,7 @@ import io.swagger.annotations.ApiModelProperty;
             name = "syncEndIndex",
             columnList = "aid, syncEnd",
             unique = false),
-})
+    })
 @NamedQueries({
     @NamedQuery(
         name = "SyncTracker.get",
@@ -87,7 +87,8 @@ public abstract class SyncTracker {
   @SequenceGenerator(
       name = "ek_seq",
       initialValue = 100000,
-      allocationSize = 10)
+      allocationSize = 10,
+      sequenceName = "account_sequence")
   @ApiModelProperty(
       value = "Uniquer tracker ID")
   @JsonProperty("tid")

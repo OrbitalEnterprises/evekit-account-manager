@@ -48,7 +48,7 @@ import io.swagger.annotations.ApiModelProperty;
             name = "sourceAndScreenIndex",
             columnList = "source, screenName",
             unique = false)
-})
+    })
 @NamedQueries({
     @NamedQuery(
         name = "EveKitUserAuthSource.findByAcctAndSource",
@@ -77,7 +77,8 @@ public class EveKitUserAuthSource implements UserAuthSource {
   @SequenceGenerator(
       name = "ek_seq",
       initialValue = 100000,
-      allocationSize = 10)
+      allocationSize = 10,
+      sequenceName = "account_sequence")
   @ApiModelProperty(
       value = "Unique source ID")
   @JsonProperty("sid")

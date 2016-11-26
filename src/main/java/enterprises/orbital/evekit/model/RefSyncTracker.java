@@ -83,7 +83,8 @@ public class RefSyncTracker {
   @SequenceGenerator(
       name = "ek_ref_seq",
       initialValue = 100000,
-      allocationSize = 10)
+      allocationSize = 10,
+      sequenceName = "account_sequence")
   @ApiModelProperty(
       value = "Uniquer tracker ID")
   @JsonProperty("tid")

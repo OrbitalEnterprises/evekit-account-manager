@@ -51,7 +51,7 @@ import io.swagger.annotations.ApiModelProperty;
             name = "deleteableIndex",
             columnList = "markedForDelete",
             unique = false),
-})
+    })
 @NamedQueries({
     @NamedQuery(
         name = "SynchronizedEveAccount.findByAcctAndName",
@@ -93,7 +93,8 @@ public class SynchronizedEveAccount {
   @SequenceGenerator(
       name = "ek_seq",
       initialValue = 100000,
-      allocationSize = 10)
+      allocationSize = 10,
+      sequenceName = "account_sequence")
   @ApiModelProperty(
       value = "Unique account ID")
   @JsonProperty("aid")
@@ -357,7 +358,8 @@ public class SynchronizedEveAccount {
                                                                     final long charID,
                                                                     final String charName,
                                                                     final long corpID,
-                                                                    final String corpName) throws AccountCreationException {
+                                                                    final String corpName)
+    throws AccountCreationException {
     SynchronizedEveAccount newAccount = null;
     try {
       newAccount = EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<SynchronizedEveAccount>() {
@@ -506,7 +508,8 @@ public class SynchronizedEveAccount {
                                    final long charID,
                                    final String charName,
                                    final long corpID,
-                                   final String corpName) throws AccountCreationException {
+                                   final String corpName)
+    throws AccountCreationException {
     AccountCreationException result = null;
     try {
       result = EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<AccountCreationException>() {

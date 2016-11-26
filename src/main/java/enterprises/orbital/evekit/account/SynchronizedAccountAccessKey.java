@@ -71,7 +71,7 @@ import io.swagger.annotations.ApiModelProperty;
             name = "keyNameIndex",
             columnList = "keyName",
             unique = false)
-})
+    })
 @NamedQueries({
     @NamedQuery(
         name = "SynchronizedAccountAccessKey.findByAcctAndName",
@@ -109,7 +109,8 @@ public class SynchronizedAccountAccessKey {
     public void serialize(
                           BigInteger value,
                           JsonGenerator jgen,
-                          SerializerProvider provider) throws IOException, JsonProcessingException {
+                          SerializerProvider provider)
+      throws IOException, JsonProcessingException {
       jgen.writeString(value.toString());
     }
   };
@@ -122,7 +123,8 @@ public class SynchronizedAccountAccessKey {
   @SequenceGenerator(
       name = "ek_seq",
       initialValue = 100000,
-      allocationSize = 10)
+      allocationSize = 10,
+      sequenceName = "account_sequence")
   @ApiModelProperty(
       value = "Unique key ID")
   @JsonProperty("kid")
@@ -348,7 +350,8 @@ public class SynchronizedAccountAccessKey {
                                                        final String keyName,
                                                        final long expiry,
                                                        final long limit,
-                                                       final byte[] accessMask) throws AccessKeyCreationException {
+                                                       final byte[] accessMask)
+    throws AccessKeyCreationException {
     SynchronizedAccountAccessKey newKey = null;
     try {
       newKey = EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<SynchronizedAccountAccessKey>() {
@@ -507,7 +510,8 @@ public class SynchronizedAccountAccessKey {
                                final String newKeyName,
                                final long expiry,
                                final long limit,
-                               final byte[] accessMask) throws AccessKeyCreationException {
+                               final byte[] accessMask)
+    throws AccessKeyCreationException {
     AccessKeyCreationException result = null;
     try {
       result = EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<AccessKeyCreationException>() {
@@ -576,7 +580,8 @@ public class SynchronizedAccountAccessKey {
 
   public static SynchronizedAccountAccessKey checkHash(
                                                        long keyID,
-                                                       String submittedHash) throws NoSuchKeyException {
+                                                       String submittedHash)
+    throws NoSuchKeyException {
     SynchronizedAccountAccessKey accessKey = getKeyByAccessKey(keyID);
 
     if (accessKey == null) {

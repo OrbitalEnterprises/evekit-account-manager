@@ -29,7 +29,8 @@ public class GeneralSequenceNumber {
   @SequenceGenerator(
       name = "ek_seq",
       initialValue = 100000,
-      allocationSize = 10)
+      allocationSize = 10,
+      sequenceName = "account_sequence")
   private long                value;
 
   public long getValue() {

@@ -58,7 +58,8 @@ public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<Str
   @SequenceGenerator(
       name = "ek_seq",
       initialValue = 100000,
-      allocationSize = 10)
+      allocationSize = 10,
+      sequenceName = "account_sequence")
   @ApiModelProperty(
       value = "Unique user ID")
   @JsonProperty("uid")
