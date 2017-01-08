@@ -18,6 +18,7 @@
   	<developerConnection>scm:git:git@github.com:OrbitalEnterprises/evekit-account-manager.git</developerConnection>
   </scm>
   <properties>
+    <orbital.oauth.version>2.2.0</orbital.oauth.version>
     <orbital.toolchain.version>2.1.0</orbital.toolchain.version>
     <swagger.version>1.5.7</swagger.version>
     <jackson.core.version>2.4.5</jackson.core.version>
@@ -27,7 +28,7 @@
     <dependency>
       <groupId>enterprises.orbital</groupId>
       <artifactId>oauth</artifactId>
-      <version>${orbital.toolchain.version}</version>
+      <version>${orbital.oauth.version}</version>
     </dependency>
     <dependency>
       <groupId>enterprises.orbital</groupId>
