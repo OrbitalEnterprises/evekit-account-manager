@@ -43,7 +43,7 @@ import java.util.logging.Logger;
 @ApiModel(
     description = "ESI access key")
 @JsonIgnoreProperties({
-    "accessToken", "accessTokenExpiry", "refreshToken"
+    "accessToken", "refreshToken"
 })
 public class ESIToken {
   protected static final Logger log = Logger.getLogger(ESIToken.class.getName());
