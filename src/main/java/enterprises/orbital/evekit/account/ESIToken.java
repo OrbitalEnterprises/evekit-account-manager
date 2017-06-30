@@ -79,6 +79,7 @@ public class ESIToken {
   // Latest access token
   private String accessToken;
   // Expiry date (millis UTC) of access token
+  @JsonProperty("accessTokenExpiry")
   private long   accessTokenExpiry;
   // Latest refresh token
   private String refreshToken;
