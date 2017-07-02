@@ -118,7 +118,7 @@ public class ESITokenManager {
     return true;
   }
 
-  public static void refreshToken(long kid, long expiryWindow, String eveClientID, String eveSecretKey)
+  public static String refreshToken(long kid, long expiryWindow, String eveClientID, String eveSecretKey)
       throws IOException {
     // Find token
     ESIToken key = ESIToken.getKeyByID(kid);
@@ -142,6 +142,7 @@ public class ESITokenManager {
       key = ESIToken.update(key);
       if (key == null) throw new IOException("Failed to save refreshed token for key: " + kid);
     }
+    return key.getAccessToken();
   }
 
 }
