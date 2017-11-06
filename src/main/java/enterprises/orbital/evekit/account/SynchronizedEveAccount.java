@@ -28,14 +28,14 @@ import java.util.logging.Logger;
  * <p>
  * The operations below allow the following transitions:
  * <p>
- * NONE -> XML - add XML credential
- * NONE -> ESI - add ESI credential
- * XML -> BOTH - add ESI credential where an XML credential already exists
- * ESI -> BOTH - add XML credential where an ESI credential already exists
- * BOTH -> XML - remove ESI credential where an XML credential already exists
- * BOTH -> ESI - remove XML credential where an ESI credential already exists
- * XML -> NONE - remove XML credential
- * ESI -> NONE - remove ESI credential
+ * NONE -&gt; XML - add XML credential
+ * NONE -&gt; ESI - add ESI credential
+ * XML -&gt; BOTH - add ESI credential where an XML credential already exists
+ * ESI -&gt; BOTH - add XML credential where an ESI credential already exists
+ * BOTH -&gt; XML - remove ESI credential where an XML credential already exists
+ * BOTH -&gt; ESI - remove XML credential where an ESI credential already exists
+ * XML -&gt; NONE - remove XML credential
+ * ESI -&gt; NONE - remove ESI credential
  */
 @Entity
 @Table(
@@ -798,6 +798,7 @@ public class SynchronizedEveAccount {
    * @param accessToken       ESI access token
    * @param accessTokenExpiry ESI access token expiry (milliseconds UTC)
    * @param refreshToken      ESI refresh token
+   * @param scopes            desired scopes for token
    * @param characterID       character ID associated with credential
    * @param characterName     character name associated with credential
    * @param corporationID     corporation ID associated with credential

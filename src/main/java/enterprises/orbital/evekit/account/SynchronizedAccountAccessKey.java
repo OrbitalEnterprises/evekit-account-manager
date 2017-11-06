@@ -327,6 +327,7 @@ public class SynchronizedAccountAccessKey {
    * @param accessMask the access mask for this key.
    * @return the newly created key
    * @throws AccessKeyCreationException if a key with the given name already exists for this account.
+   * @throws IOException on any database error
    */
   public static SynchronizedAccountAccessKey createKey(
       final SynchronizedEveAccount account,
@@ -531,6 +532,7 @@ public class SynchronizedAccountAccessKey {
    * @param expiry     new expiry for key
    * @param limit      new limit for key
    * @param accessMask new access mask for key
+   * @return updated key
    * @throws AccessKeyNotFoundException if key to update can not be found.
    * @throws AccessKeyUpdateException   if key name is changed to a name already in use.
    * @throws IOException                on any database error
