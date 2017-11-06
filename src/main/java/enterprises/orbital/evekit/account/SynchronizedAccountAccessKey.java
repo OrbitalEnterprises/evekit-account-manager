@@ -1,5 +1,17 @@
 package enterprises.orbital.evekit.account;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import enterprises.orbital.base.OrbitalProperties;
+import enterprises.orbital.base.Stamper;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+
+import javax.persistence.*;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -9,43 +21,10 @@ import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Index;
-import javax.persistence.JoinColumn;
-import javax.persistence.Lob;
-import javax.persistence.ManyToOne;
-import javax.persistence.NamedQueries;
-import javax.persistence.NamedQuery;
-import javax.persistence.NoResultException;
-import javax.persistence.OneToOne;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
-import javax.persistence.Transient;
-import javax.persistence.TypedQuery;
-
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-
-import enterprises.orbital.base.OrbitalProperties;
-import enterprises.orbital.base.Stamper;
-import enterprises.orbital.db.ConnectionFactory.RunInTransaction;
-import enterprises.orbital.db.ConnectionFactory.RunInVoidTransaction;
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
-
 /**
  * Instances of this data object control REST access to synchronized data. There can be many keys associated with a given synchronized account. Each key may
  * differ in features like access mask and expiry.
- * 
+ * <p>
  * Access model:
  * <ol>
  * <li>Caller (via REST) passes a key ID and hash along with the requested operation.
@@ -110,7 +89,7 @@ public class SynchronizedAccountAccessKey {
                           BigInteger value,
                           JsonGenerator jgen,
                           SerializerProvider provider)
-      throws IOException, JsonProcessingException {
+      throws IOException {
       jgen.writeString(value.toString());
     }
   };
@@ -129,6 +108,7 @@ public class SynchronizedAccountAccessKey {
       value = "Unique key ID")
   @JsonProperty("kid")
   protected long                 kid;
+
   // Account which owns this key
   @ManyToOne
   @JoinColumn(
@@ -138,11 +118,13 @@ public class SynchronizedAccountAccessKey {
       value = "Key owner")
   @JsonProperty("account")
   private SynchronizedEveAccount account;
+
   // User readable name of this key. This should be unique for all keys on the same SynchronizedEveAccount.
   @ApiModelProperty(
       value = "Key name")
   @JsonProperty("keyName")
   private String                 keyName;
+
   // Integer key ID. This is unique across all keys maintained by EveKit.
   @OneToOne
   @JoinColumn(
@@ -152,13 +134,16 @@ public class SynchronizedAccountAccessKey {
       value = "Access key")
   @JsonProperty("accessKey")
   private GeneralSequenceNumber  accessKey;
+
   // Fixed at the time this key is created, we use this field to randomize the hash.
   private long                   randomSeed;
+
   // -1 for a key which never expires, otherwise this is the time in UTC when the given key will expire.
   @ApiModelProperty(
       value = "-1 if this key never expires, otherwise the date (milliseconds UTC) when this key expires")
   @JsonProperty("expiry")
   private long                   expiry = -1;
+
   // -1 for an unlimited key, otherwise this is limit time in UTC for historic queries. That is, records (e.g. wallet transactions) with a date before this
   // time are not accessible by this key. Note that limit is a reserved word, so we need to escape it in the column
   // definition.
@@ -168,15 +153,18 @@ public class SynchronizedAccountAccessKey {
   @Column(
       name = "\"limit\"")
   private long                   limit  = -1;
+
   // Mask which controls access for this key.
   @Lob
   private byte[]                 accessMask;
+
   // Hash computed when needed for communication to owning user.
   @Transient
   @ApiModelProperty(
       value = "Access credential")
   @JsonProperty("credential")
   private String                 credential;
+
   // Integer value of mask. Used for display purposes.
   @Transient
   @ApiModelProperty(
@@ -185,6 +173,7 @@ public class SynchronizedAccountAccessKey {
   @JsonSerialize(
       using = BigIntegerSerializer.class)
   private BigInteger             maskValue;
+
   // String value of mask. Also used for display purposes.
   @Transient
   @ApiModelProperty(
@@ -330,211 +319,260 @@ public class SynchronizedAccountAccessKey {
   /**
    * Create a new account access key. The key is created in a transaction and will succeed as long as a key with the same name does not already exist for the
    * given SynchronizedEveAccount.
-   * 
-   * @param accountKey
-   *          the parent for the new key.
-   * @param keyName
-   *          the name of the new key.
-   * @param expiry
-   *          the time, in UTC, when the key expires, or NULL for a key which never expires.
-   * @param limit
-   *          the time, in UTC, which marks the oldest records available to this key, or NUL for an unlimited key.
-   * @param accessMask
-   *          the access mask for this key.
-   * @return the newly created key, or null if a key with the given name already exists.
-   * @throws AccessKeyCreationException
-   *           if a key with the given name already exists for this account.
+   *
+   * @param account the parent for the new key.
+   * @param keyName    the name of the new key.
+   * @param expiry     the time, in UTC, when the key expires, or NULL for a key which never expires.
+   * @param limit      the time, in UTC, which marks the oldest records available to this key, or NUL for an unlimited key.
+   * @param accessMask the access mask for this key.
+   * @return the newly created key
+   * @throws AccessKeyCreationException if a key with the given name already exists for this account.
    */
   public static SynchronizedAccountAccessKey createKey(
-                                                       final SynchronizedEveAccount accountKey,
-                                                       final String keyName,
-                                                       final long expiry,
-                                                       final long limit,
-                                                       final byte[] accessMask)
-    throws AccessKeyCreationException {
-    SynchronizedAccountAccessKey newKey = null;
+      final SynchronizedEveAccount account,
+      final String keyName,
+      final long expiry,
+      final long limit,
+      final byte[] accessMask)
+      throws AccessKeyCreationException, IOException {
     try {
-      newKey = EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<SynchronizedAccountAccessKey>() {
-        @Override
-        public SynchronizedAccountAccessKey run() throws Exception {
-          // Throw exception if key with given name already exists
-          SynchronizedAccountAccessKey result = getKeyByOwnerAndName(accountKey, keyName);
-          if (result != null) return null;
-          // Looks good, make key
-          long seed = new Random(OrbitalProperties.getCurrentTime()).nextLong();
-          result = new SynchronizedAccountAccessKey();
-          result.account = accountKey;
-          result.keyName = keyName;
-          result.expiry = expiry;
-          result.limit = limit;
-          result.accessMask = accessMask;
-          result.randomSeed = seed;
-          result.accessKey = GeneralSequenceNumber.create();
-          return EveKitUserAccountProvider.getFactory().getEntityManager().merge(result);
-        }
-      });
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        try {
+                                          getKeyByOwnerAndName(account, keyName);
+                                          // if no exception is thrown, then key already exists, throw exception
+                                          throw new AccessKeyCreationException("Access key with name " + keyName + " already exists");
+                                        } catch (AccessKeyNotFoundException e) {
+                                          // Key does not exit, creat it
+                                          long seed = new Random(OrbitalProperties.getCurrentTime()).nextLong();
+                                          SynchronizedAccountAccessKey result = new SynchronizedAccountAccessKey();
+                                          result.account = account;
+                                          result.keyName = keyName;
+                                          result.expiry = expiry;
+                                          result.limit = limit;
+                                          result.accessMask = accessMask;
+                                          result.randomSeed = seed;
+                                          result.accessKey = GeneralSequenceNumber.create();
+                                          return EveKitUserAccountProvider.getFactory()
+                                                                          .getEntityManager()
+                                                                          .merge(result);
+                                        }
+                                      });
     } catch (Exception e) {
+      if (e.getCause() instanceof AccountNotFoundException) throw (AccessKeyCreationException) e.getCause();
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    if (newKey == null) throw new AccessKeyCreationException("Access key with name " + keyName + " already exists");
-    return newKey;
   }
 
+  /**
+   * Retrieve access key by name.
+   *
+   * @param owner account which owns key.
+   * @param name  name of key to retrieve.
+   * @return the requested key.
+   * @throws AccessKeyNotFoundException if the requested key can not be found.
+   * @throws IOException                on any database error.
+   */
   public static SynchronizedAccountAccessKey getKeyByOwnerAndName(
-                                                                  final SynchronizedEveAccount owner,
-                                                                  final String name) {
+      final SynchronizedEveAccount owner,
+      final String name)
+      throws AccessKeyNotFoundException, IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<SynchronizedAccountAccessKey>() {
-        @Override
-        public SynchronizedAccountAccessKey run() throws Exception {
-          TypedQuery<SynchronizedAccountAccessKey> getter = EveKitUserAccountProvider.getFactory().getEntityManager()
-              .createNamedQuery("SynchronizedAccountAccessKey.findByAcctAndName", SynchronizedAccountAccessKey.class);
-          getter.setParameter("account", owner);
-          getter.setParameter("name", name);
-          try {
-            return getter.getSingleResult();
-          } catch (NoResultException e) {
-            return null;
-          }
-        }
-      });
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        TypedQuery<SynchronizedAccountAccessKey> getter = EveKitUserAccountProvider.getFactory()
+                                                                                                                   .getEntityManager()
+                                                                                                                   .createNamedQuery("SynchronizedAccountAccessKey.findByAcctAndName", SynchronizedAccountAccessKey.class);
+                                        getter.setParameter("account", owner);
+                                        getter.setParameter("name", name);
+                                        try {
+                                          return getter.getSingleResult();
+                                        } catch (NoResultException e) {
+                                          throw new AccessKeyNotFoundException();
+                                        }
+                                      });
     } catch (Exception e) {
+      if (e.getCause() instanceof AccessKeyNotFoundException) throw (AccessKeyNotFoundException) e.getCause();
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
   }
 
+  /**
+   * Retrieve access key by ID.
+   *
+   * @param owner account which owns key.
+   * @param kid   ID of key to retrieve.
+   * @return the requested key.
+   * @throws AccessKeyNotFoundException if the requested key can not be found.
+   * @throws IOException                on any database error.
+   */
   public static SynchronizedAccountAccessKey getKeyByOwnerAndID(
-                                                                final SynchronizedEveAccount owner,
-                                                                final long kid) {
+      final SynchronizedEveAccount owner,
+      final long kid)
+      throws AccessKeyNotFoundException, IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<SynchronizedAccountAccessKey>() {
-        @Override
-        public SynchronizedAccountAccessKey run() throws Exception {
-          TypedQuery<SynchronizedAccountAccessKey> getter = EveKitUserAccountProvider.getFactory().getEntityManager()
-              .createNamedQuery("SynchronizedAccountAccessKey.findByAcctAndID", SynchronizedAccountAccessKey.class);
-          getter.setParameter("account", owner);
-          getter.setParameter("kid", kid);
-          try {
-            return getter.getSingleResult();
-          } catch (NoResultException e) {
-            return null;
-          }
-        }
-      });
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        TypedQuery<SynchronizedAccountAccessKey> getter = EveKitUserAccountProvider.getFactory()
+                                                                                                                   .getEntityManager()
+                                                                                                                   .createNamedQuery("SynchronizedAccountAccessKey.findByAcctAndID", SynchronizedAccountAccessKey.class);
+                                        getter.setParameter("account", owner);
+                                        getter.setParameter("kid", kid);
+                                        try {
+                                          return getter.getSingleResult();
+                                        } catch (NoResultException e) {
+                                          throw new AccessKeyNotFoundException();
+                                        }
+                                      });
     } catch (Exception e) {
+      if (e.getCause() instanceof AccessKeyNotFoundException) throw (AccessKeyNotFoundException) e.getCause();
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
   }
 
+  /**
+   * Retrieve access key by key ID.
+   *
+   * @param accessKey the key ID for the key to retrieve.
+   * @return the requested key.
+   * @throws AccessKeyNotFoundException if the requested key can not be found.
+   * @throws IOException                on any database error.
+   */
   public static SynchronizedAccountAccessKey getKeyByAccessKey(
-                                                               final long accessKey) {
+      final long accessKey)
+      throws AccessKeyNotFoundException, IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<SynchronizedAccountAccessKey>() {
-        @Override
-        public SynchronizedAccountAccessKey run() throws Exception {
-          TypedQuery<SynchronizedAccountAccessKey> getter = EveKitUserAccountProvider.getFactory().getEntityManager()
-              .createNamedQuery("SynchronizedAccountAccessKey.findByAccessKey", SynchronizedAccountAccessKey.class);
-          getter.setParameter("accesskey", accessKey);
-          try {
-            return getter.getSingleResult();
-          } catch (NoResultException e) {
-            return null;
-          }
-        }
-      });
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        TypedQuery<SynchronizedAccountAccessKey> getter = EveKitUserAccountProvider.getFactory()
+                                                                                                                   .getEntityManager()
+                                                                                                                   .createNamedQuery("SynchronizedAccountAccessKey.findByAccessKey", SynchronizedAccountAccessKey.class);
+                                        getter.setParameter("accesskey", accessKey);
+                                        try {
+                                          return getter.getSingleResult();
+                                        } catch (NoResultException e) {
+                                          throw new AccessKeyNotFoundException();
+                                        }
+                                      });
     } catch (Exception e) {
+      if (e.getCause() instanceof AccessKeyNotFoundException) throw (AccessKeyNotFoundException) e.getCause();
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
   }
 
+  /**
+   * Retrieve all access keys for the given account.
+   *
+   * @param owner account for which keys will be retrieved.
+   * @return the list of requested keys.
+   * @throws IOException on any database error.
+   */
   public static List<SynchronizedAccountAccessKey> getAllKeys(
-                                                              final SynchronizedEveAccount owner) {
+      final SynchronizedEveAccount owner)
+      throws IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<List<SynchronizedAccountAccessKey>>() {
-        @Override
-        public List<SynchronizedAccountAccessKey> run() throws Exception {
-          TypedQuery<SynchronizedAccountAccessKey> getter = EveKitUserAccountProvider.getFactory().getEntityManager()
-              .createNamedQuery("SynchronizedAccountAccessKey.findAllByAcct", SynchronizedAccountAccessKey.class);
-          getter.setParameter("account", owner);
-          return getter.getResultList();
-        }
-      });
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        TypedQuery<SynchronizedAccountAccessKey> getter = EveKitUserAccountProvider.getFactory()
+                                                                                                                   .getEntityManager()
+                                                                                                                   .createNamedQuery("SynchronizedAccountAccessKey.findAllByAcct", SynchronizedAccountAccessKey.class);
+                                        getter.setParameter("account", owner);
+                                        return getter.getResultList();
+                                      });
     } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
   }
 
-  public static boolean deleteKey(
-                                  final SynchronizedEveAccount owner,
-                                  final String name) {
+  /**
+   * Delete access key.
+   *
+   * @param owner owner of key to delete.
+   * @param kid   ID of key to delete
+   * @throws AccessKeyNotFoundException if the key to delete can not be found.
+   * @throws IOException                on any database error.
+   */
+  public static void deleteKey(
+      final SynchronizedEveAccount owner,
+      final long kid)
+      throws AccessKeyNotFoundException, IOException {
     try {
-      EveKitUserAccountProvider.getFactory().runTransaction(new RunInVoidTransaction() {
-        @Override
-        public void run() throws Exception {
-          SynchronizedAccountAccessKey key = getKeyByOwnerAndName(owner, name);
-          if (key != null) EveKitUserAccountProvider.getFactory().getEntityManager().remove(key);
-        }
-      });
-      return true;
+      EveKitUserAccountProvider.getFactory()
+                               .runTransaction(() -> {
+                                 SynchronizedAccountAccessKey key = getKeyByOwnerAndID(owner, kid);
+                                 EveKitUserAccountProvider.getFactory()
+                                                          .getEntityManager()
+                                                          .remove(key);
+                               });
     } catch (Exception e) {
+      if (e.getCause() instanceof AccessKeyNotFoundException) throw (AccessKeyNotFoundException) e.getCause();
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return false;
   }
 
-  public static boolean deleteKey(
-                                  final SynchronizedEveAccount owner,
-                                  final long kid) {
+  /**
+   * Update access key settings.
+   *
+   * @param owner      account which owns key to be updated.
+   * @param keyName    name of key to be updated.
+   * @param newKeyName new name of key
+   * @param expiry     new expiry for key
+   * @param limit      new limit for key
+   * @param accessMask new access mask for key
+   * @throws AccessKeyNotFoundException if key to update can not be found.
+   * @throws AccessKeyUpdateException   if key name is changed to a name already in use.
+   * @throws IOException                on any database error
+   */
+  public static SynchronizedAccountAccessKey updateKey(
+      final SynchronizedEveAccount owner,
+      final String keyName,
+      final String newKeyName,
+      final long expiry,
+      final long limit,
+      final byte[] accessMask)
+      throws AccessKeyNotFoundException, AccessKeyUpdateException, IOException {
     try {
-      EveKitUserAccountProvider.getFactory().runTransaction(new RunInVoidTransaction() {
-        @Override
-        public void run() throws Exception {
-          SynchronizedAccountAccessKey key = getKeyByOwnerAndID(owner, kid);
-          if (key != null) EveKitUserAccountProvider.getFactory().getEntityManager().remove(key);
-        }
-      });
-      return true;
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        // Retrieve key to update
+                                        SynchronizedAccountAccessKey key = getKeyByOwnerAndName(owner, keyName);
+                                        if (!keyName.equals(newKeyName)) {
+                                          // We're changing key name, make sure the new name is not already in use
+                                          try {
+                                            getKeyByOwnerAndName(owner, newKeyName);
+                                            throw new AccessKeyUpdateException("Key already exists with new name: " + newKeyName);
+                                          } catch (AccessKeyNotFoundException e) {
+                                            // Key not in use - continue
+                                          }
+                                          key.keyName = newKeyName;
+                                        }
+                                        // Make other key changes
+                                        key.setExpiry(expiry);
+                                        key.setLimit(limit);
+                                        key.setAccessMask(accessMask);
+                                        return EveKitUserAccountProvider.getFactory()
+                                                                        .getEntityManager()
+                                                                        .merge(key);
+                                      });
     } catch (Exception e) {
+      if (e.getCause() instanceof AccessKeyNotFoundException) throw (AccessKeyNotFoundException) e.getCause();
+      if (e.getCause() instanceof AccessKeyUpdateException) throw (AccessKeyUpdateException) e.getCause();
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return false;
-  }
-
-  public static void updateKey(
-                               final SynchronizedEveAccount owner,
-                               final String keyName,
-                               final String newKeyName,
-                               final long expiry,
-                               final long limit,
-                               final byte[] accessMask)
-    throws AccessKeyCreationException {
-    AccessKeyCreationException result = null;
-    try {
-      result = EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<AccessKeyCreationException>() {
-        @Override
-        public AccessKeyCreationException run() throws Exception {
-          SynchronizedAccountAccessKey key = getKeyByOwnerAndName(owner, keyName);
-          if (key == null) return null;
-          if (!keyName.equals(newKeyName)) {
-            // Verify no key with new name already exists.
-            if (getKeyByOwnerAndName(owner, newKeyName) != null) return new AccessKeyCreationException("Key already exists with new name: " + newKeyName);
-            key.keyName = newKeyName;
-          }
-          key.setExpiry(expiry);
-          key.setLimit(limit);
-          key.setAccessMask(accessMask);
-          EveKitUserAccountProvider.getFactory().getEntityManager().merge(key);
-          return null;
-        }
-      });
-    } catch (Exception e) {
-      log.log(Level.SEVERE, "query error", e);
-    }
-    if (result != null) throw result;
   }
 
   public void generateCredential() {
@@ -578,33 +616,45 @@ public class SynchronizedAccountAccessKey {
     return Stamper.digest(assemble);
   }
 
+  /**
+   * Verify hash and return associated access key, or null if the has is incorrect.
+   *
+   * @param keyID         submitted key ID
+   * @param submittedHash submitted hash
+   * @return the associated access key if the hash is verified, otherwise null
+   * @throws AccessKeyNotFoundException if no key could be found with the given key ID.
+   * @throws IOException                on any database error.
+   */
   public static SynchronizedAccountAccessKey checkHash(
-                                                       long keyID,
-                                                       String submittedHash)
-    throws NoSuchKeyException {
+      long keyID,
+      String submittedHash)
+      throws AccessKeyNotFoundException, IOException {
     SynchronizedAccountAccessKey accessKey = getKeyByAccessKey(keyID);
-
-    if (accessKey == null) {
-      log.fine("Can't find any access key with ID " + keyID + ", returning false");
-      throw new NoSuchKeyException("No access key found with ID: " + String.valueOf(keyID));
-    }
-
     return generateHash(accessKey).equals(submittedHash) ? accessKey : null;
   }
 
+  /**
+   * Remove all access keys for a synchronized account.
+   *
+   * @param acct account from which keys will be removed.
+   * @throws IOException on any database error.
+   */
   public static void remove(
-                            final SynchronizedEveAccount acct) {
+      final SynchronizedEveAccount acct)
+      throws IOException {
     try {
-      EveKitUserAccountProvider.getFactory().runTransaction(new RunInVoidTransaction() {
-        @Override
-        public void run() throws Exception {
-          for (SynchronizedAccountAccessKey next : getAllKeys(acct)) {
-            EveKitUserAccountProvider.getFactory().getEntityManager().remove(next);
-          }
-        }
-      });
+      EveKitUserAccountProvider.getFactory()
+                               .runTransaction(() -> {
+                                 for (SynchronizedAccountAccessKey next : getAllKeys(acct)) {
+                                   EveKitUserAccountProvider.getFactory()
+                                                            .getEntityManager()
+                                                            .remove(next);
+                                 }
+                               });
     } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
   }
 

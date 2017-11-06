@@ -4,8 +4,11 @@ import enterprises.orbital.base.OrbitalProperties;
 import enterprises.orbital.base.Stamper;
 
 import javax.persistence.*;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Random;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -42,6 +45,33 @@ import java.util.logging.Logger;
 public class NewESIToken {
   protected static final Logger log = Logger.getLogger(NewESIToken.class.getName());
 
+  // Life time of a temporary token while waiting for ESI credential authorization to complete
+  public static final  String            PROP_TEMP_TOKEN_LIFETIME = "enterprises.orbital.evekit.tempTokenLifetime";
+  public static final  long              DEF_TEMP_TOKEN_LIFETIME  = TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES);
+
+  // Set to true when the cleaned thread has been started
+  private static boolean cleanerStarted = false;
+
+  public static void init() {
+    synchronized (NewESIToken.class) {
+      if (cleanerStarted) return;
+      new Thread(() -> {
+        while (true) {
+          try {
+            long now = OrbitalProperties.getCurrentTime();
+            NewESIToken.cleanExpired(now);
+            Thread.sleep(TimeUnit.MILLISECONDS.convert(5, TimeUnit.MINUTES));
+          } catch (Throwable e) {
+            // Catch everything but log it
+            log.log(Level.WARNING, "caught error in state cleanup loop (ignoring)", e);
+          }
+        }
+      }).start();
+      cleanerStarted = true;
+    }
+  }
+
+
   protected static ThreadLocal<ByteBuffer> assembly = new ThreadLocal<ByteBuffer>() {
     @Override
     protected ByteBuffer initialValue() {
@@ -63,37 +93,52 @@ public class NewESIToken {
       allocationSize = 10,
       sequenceName = "account_sequence")
   private long   kid;
-  // OAuth UserAccount ID which this new key will be associated with
+
+  // EveKitUserAccount which owns the SynchronizedEveAccount which will store this token
   @ManyToOne
   @JoinColumn(
       name = "uid",
       referencedColumnName = "uid")
-  private EveKitUserAccount   userAccount;
+  private EveKitUserAccount user;
+
+  // SynchronizedEveAccount which will store this credential
+  @ManyToOne
+  @JoinColumn(
+      name = "aid",
+      referencedColumnName = "aid")
+  private SynchronizedEveAccount account;
+
   // Time when request was created
   private long   createTime;
+
   // Time when this request will expire
   private long   expiry;
-  // Named scopes requested for this key
+
+  // Space separated named scopes requested for this key
   @Lob
   @Column(
       length = 102400)
   private String scopes;
+
   // Fixed at the time this key is created, we use this field to randomize the hash.
   private long   randomSeed;
+
   // OAuth state presented as part of request
   @Lob
   @Column(
       length = 102400)
   private String stateKey;
-  // Pre-existing key if this is a re-authentication request, otherwise -1
-  private long existingKid = -1;
 
   public long getKid() {
     return kid;
   }
 
-  public EveKitUserAccount getUserAccount() {
-    return userAccount;
+  public EveKitUserAccount getUser() {
+    return user;
+  }
+
+  public SynchronizedEveAccount getAccount() {
+    return account;
   }
 
   public long getCreateTime() {
@@ -116,10 +161,6 @@ public class NewESIToken {
     return stateKey;
   }
 
-  public long getExistingKid() { return existingKid; }
-
-  public void setExistingKid(long pkid) { this.existingKid = pkid; }
-
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -131,20 +172,22 @@ public class NewESIToken {
     if (createTime != that.createTime) return false;
     if (expiry != that.expiry) return false;
     if (randomSeed != that.randomSeed) return false;
-    if (existingKid != that.existingKid) return false;
-    if (!userAccount.equals(that.userAccount)) return false;
-    return scopes.equals(that.scopes);
+    if (!user.equals(that.user)) return false;
+    if (!account.equals(that.account)) return false;
+    if (!scopes.equals(that.scopes)) return false;
+    return stateKey.equals(that.stateKey);
   }
 
   @Override
   public int hashCode() {
     int result = (int) (kid ^ (kid >>> 32));
-    result = 31 * result + userAccount.hashCode();
+    result = 31 * result + user.hashCode();
+    result = 31 * result + account.hashCode();
     result = 31 * result + (int) (createTime ^ (createTime >>> 32));
     result = 31 * result + (int) (expiry ^ (expiry >>> 32));
     result = 31 * result + scopes.hashCode();
     result = 31 * result + (int) (randomSeed ^ (randomSeed >>> 32));
-    result = 31 * result + (int) (existingKid ^ (existingKid >>> 32));
+    result = 31 * result + stateKey.hashCode();
     return result;
   }
 
@@ -152,55 +195,79 @@ public class NewESIToken {
   public String toString() {
     return "NewESIToken{" +
         "kid=" + kid +
-        ", userAccount=" + userAccount +
+        ", user=" + user +
+        ", account=" + account +
         ", createTime=" + createTime +
         ", expiry=" + expiry +
         ", scopes='" + scopes + '\'' +
         ", randomSeed=" + randomSeed +
         ", stateKey='" + stateKey + '\'' +
-        ", existingKid=" + existingKid +
         '}';
   }
 
-  public static NewESIToken createKey(final EveKitUserAccount userAccount, final long createTime, final long expiry,
-                                      final String scopes, final long existingKid) {
-    NewESIToken newKey = null;
+  /**
+   * Create a new temporary ESI token.
+   *
+   * @param user owning user
+   * @param account owning account
+   * @param createTime time when temporary token was created
+   * @param expiry time when temporary token will expire
+   * @param scopes desired scopes for this token
+   * @return new temporary token
+   * @throws IOException on any database error
+   */
+  public static NewESIToken createKey(final EveKitUserAccount user, final SynchronizedEveAccount account,
+                                      final long createTime, final long expiry, final String scopes)
+      throws IOException {
+    init();
     try {
       // Generate and save the initial key
-      newKey = EveKitUserAccountProvider.getFactory().runTransaction(() -> {
-          long        seed   = new Random(OrbitalProperties.getCurrentTime()).nextLong();
-          NewESIToken result = new NewESIToken();
-          result.userAccount = userAccount;
-          result.createTime = createTime;
-          result.existingKid = existingKid;
-          result.expiry = expiry;
-          result.scopes = scopes;
-          result.randomSeed = seed;
-          return EveKitUserAccountProvider.getFactory().getEntityManager().merge(result);
-        });
-      // If successful, then set the hash on the key and return it.  We need this in the
-      // database since this is what we'll select when the OAuth pass completes.
-      final NewESIToken tempKey = newKey;
-      newKey = EveKitUserAccountProvider.getFactory().runTransaction(() -> {
-          TypedQuery<NewESIToken> getter = EveKitUserAccountProvider.getFactory().getEntityManager()
-              .createNamedQuery("NewESIToken.findByID", NewESIToken.class);
-          getter.setParameter("kid", tempKey.kid);
-          try {
-            NewESIToken result = getter.getSingleResult();
-            result.stateKey = generateHash(result);
-            return EveKitUserAccountProvider.getFactory().getEntityManager().merge(result);
-          } catch (NoResultException e) {
-            return null;
-          }
-        });
+      NewESIToken newKey = EveKitUserAccountProvider.getFactory()
+                                        .runTransaction(() -> {
+                                          long seed = new Random(OrbitalProperties.getCurrentTime()).nextLong();
+                                          NewESIToken result = new NewESIToken();
+                                          result.user = user;
+                                          result.account = account;
+                                          result.createTime = createTime;
+                                          result.expiry = expiry;
+                                          result.scopes = scopes;
+                                          result.randomSeed = seed;
+                                          return EveKitUserAccountProvider.getFactory()
+                                                                          .getEntityManager()
+                                                                          .merge(result);
+                                        });
+      // If successful, then set the hash on the key and return it.  We do this in a separate transaction
+      // because the temporary key ID is part of the hash and will not be set until the key is
+      // committed.
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        TypedQuery<NewESIToken> getter = EveKitUserAccountProvider.getFactory()
+                                                                                                  .getEntityManager()
+                                                                                                  .createNamedQuery("NewESIToken.findByID", NewESIToken.class);
+                                        getter.setParameter("kid", newKey.kid);
+                                        NewESIToken result = getter.getSingleResult();
+                                        result.stateKey = generateHash(result);
+                                        return EveKitUserAccountProvider.getFactory()
+                                                                        .getEntityManager()
+                                                                        .merge(result);
+                                      });
 
     } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return newKey;
   }
 
-  public static NewESIToken getKeyByID(final long kid) {
+  /**
+   * Retrieve a temporary token by ID.
+   *
+   * @param kid token to retrieve
+   * @return requested token, or null if not found
+   * @throws IOException on any database error
+   */
+  public static NewESIToken getKeyByID(final long kid)
+  throws IOException {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(() -> {
           TypedQuery<NewESIToken> getter = EveKitUserAccountProvider.getFactory().getEntityManager()
@@ -213,12 +280,21 @@ public class NewESIToken {
           }
         });
     } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
   }
 
-  public static NewESIToken getKeyByState(final String state) {
+  /**
+   * Retrieve temporary token by state.
+   *
+   * @param state token to retrieve
+   * @return requested token, or null if not found
+   * @throws IOException on any database error
+   */
+  public static NewESIToken getKeyByState(final String state)
+  throws IOException {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(() -> {
           TypedQuery<NewESIToken> getter = EveKitUserAccountProvider.getFactory().getEntityManager()
@@ -231,12 +307,19 @@ public class NewESIToken {
           }
         });
     } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
   }
 
-  public static void cleanExpired(final long limit) {
+  /**
+   * Clean up all tokens with an expiry time before the given value.
+   *
+   * @param limit expiry upper bound (milliseconds UTC)
+   * @throws IOException on any database error
+   */
+  public static void cleanExpired(final long limit) throws IOException {
     try {
       EveKitUserAccountProvider.getFactory().runTransaction(() -> {
           TypedQuery<NewESIToken> getter = EveKitUserAccountProvider.getFactory().getEntityManager()
@@ -247,23 +330,37 @@ public class NewESIToken {
           }
         });
     } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
   }
 
-  public static boolean deleteKey(final long kid) {
+  /**
+   * Delete the requested token.  No op if the requested key is not found.
+   *
+   * @param kid token to delete.
+   * @throws IOException on any database error
+   */
+  public static void deleteKey(final long kid) throws IOException {
     try {
       EveKitUserAccountProvider.getFactory().runTransaction(() -> {
           NewESIToken key = getKeyByID(kid);
           if (key != null) EveKitUserAccountProvider.getFactory().getEntityManager().remove(key);
         });
-      return true;
     } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return false;
   }
 
+  /**
+   * Generate state (hash) for the given token.
+   *
+   * @param ref token to hash
+   * @return hash string
+   */
   private static String generateHash(NewESIToken ref) {
     ByteBuffer assemble = assembly.get();
     assemble.clear();

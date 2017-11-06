@@ -1,35 +1,41 @@
 package enterprises.orbital.evekit.account;
 
-import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Index;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.NamedQueries;
-import javax.persistence.NamedQuery;
-import javax.persistence.NoResultException;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
-import javax.persistence.Transient;
-import javax.persistence.TypedQuery;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
-
+import com.github.scribejava.core.model.OAuth2AccessToken;
 import enterprises.orbital.base.OrbitalProperties;
-import enterprises.orbital.db.ConnectionFactory.RunInTransaction;
-import enterprises.orbital.db.ConnectionFactory.RunInVoidTransaction;
 import enterprises.orbital.evekit.model.SyncTracker;
+import enterprises.orbital.oauth.EVEAuthHandler;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
+import javax.persistence.*;
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
- * Synchronized EVE account.
+ * Synchronized EVE account (SEV).
+ * <p>
+ * A SEV can be in one of several states as determined by which credentials are associated with the account:
+ * <p>
+ * NONE - no credentials have been assigned.  Character and corporation information is undefined.
+ * XML - only an XML credential is assigned.  Character and corporation information reflects the XML credential.
+ * ESI - only an ESI credential is assigned.  Character and corporation information reflects the ESI credential.
+ * BOTH - both an XML and ESI credential are assigned.  Character and corporation information must agree
+ * with both credentials.
+ * <p>
+ * The operations below allow the following transitions:
+ * <p>
+ * NONE -> XML - add XML credential
+ * NONE -> ESI - add ESI credential
+ * XML -> BOTH - add ESI credential where an XML credential already exists
+ * ESI -> BOTH - add XML credential where an ESI credential already exists
+ * BOTH -> XML - remove ESI credential where an XML credential already exists
+ * BOTH -> ESI - remove XML credential where an ESI credential already exists
+ * XML -> NONE - remove XML credential
+ * ESI -> NONE - remove ESI credential
  */
 @Entity
 @Table(
@@ -37,20 +43,16 @@ import io.swagger.annotations.ApiModelProperty;
     indexes = {
         @Index(
             name = "accountIndex",
-            columnList = "uid",
-            unique = false),
+            columnList = "uid"),
         @Index(
             name = "nameIndex",
-            columnList = "name",
-            unique = false),
+            columnList = "name"),
         @Index(
             name = "autoIndex",
-            columnList = "autoSynchronized",
-            unique = false),
+            columnList = "autoSynchronized"),
         @Index(
             name = "deleteableIndex",
-            columnList = "markedForDelete",
-            unique = false),
+            columnList = "markedForDelete"),
     })
 @NamedQueries({
     @NamedQuery(
@@ -84,8 +86,9 @@ import io.swagger.annotations.ApiModelProperty;
 @ApiModel(
     description = "EveKit synchronized account")
 public class SynchronizedEveAccount {
-  private static final Logger log              = Logger.getLogger(SynchronizedEveAccount.class.getName());
+  private static final Logger log = Logger.getLogger(SynchronizedEveAccount.class.getName());
 
+  // Unique account ID
   @Id
   @GeneratedValue(
       strategy = GenerationType.SEQUENCE,
@@ -98,86 +101,144 @@ public class SynchronizedEveAccount {
   @ApiModelProperty(
       value = "Unique account ID")
   @JsonProperty("aid")
-  protected long              aid;
+  protected long aid;
+
+  // User which owns this account
   @ManyToOne
   @JoinColumn(
       name = "uid",
       referencedColumnName = "uid")
   @JsonProperty("userAccount")
-  private EveKitUserAccount   userAccount;
+  private EveKitUserAccount userAccount;
+
+  // Date when this account was created
   @ApiModelProperty(
       value = "Date (milliseconds UTC) when this account was created")
   @JsonProperty("created")
-  private long                created          = -1;
+  private long created = -1;
+
+  // Account name
   @ApiModelProperty(
       value = "Account name")
   @JsonProperty("name")
-  private String              name;
+  private String name;
+
+  // True if account synchronizes characters, false otherwise
   @ApiModelProperty(
       value = "True if this is a character account, false for a corporation account")
   @JsonProperty("characterType")
-  private boolean             characterType;
+  private boolean characterType;
+
+  // True if EveKit should automatically synchronize data for this account
   @ApiModelProperty(
       value = "True if this account will auto-synchronize")
   @JsonProperty("autoSynchronized")
-  private boolean             autoSynchronized;
-  @ApiModelProperty(
-      value = "EVE XML API access key")
-  @JsonProperty("eveKey")
-  private int                 eveKey;
-  @ApiModelProperty(
-      value = "EVE XML API access vcode")
-  @JsonProperty("eveVCode")
-  private String              eveVCode;
+  private boolean autoSynchronized;
+
+  // Account character and corporation information.  This information will not be set until a valid
+  // credential has been added for this account.
   @ApiModelProperty(
       value = "Character ID to use for accessing the EVE XML API")
   @JsonProperty("eveCharacterID")
-  private long                eveCharacterID;
+  private long eveCharacterID = -1;
   @ApiModelProperty(
       value = "Character name of character used for access")
   @JsonProperty("eveCharacterName")
-  private String              eveCharacterName;
+  private String eveCharacterName;
   @ApiModelProperty(
       value = "Corporation ID of character used for access")
   @JsonProperty("eveCorporationID")
-  private long                eveCorporationID;
+  private long eveCorporationID = -1;
   @ApiModelProperty(
       value = "Corporation Name of character used for access")
   @JsonProperty("eveCorporationName")
-  private String              eveCorporationName;
+  private String eveCorporationName;
+
+  // The last time this account was synchronized at the server.
   @Transient
   @ApiModelProperty(
       value = "Date (milliseconds UTC) when this account was last synchronized")
   @JsonProperty("lastSynchronized")
-  private long                lastSynchronized = -1;
+  private long lastSynchronized = -1;
+
   // -1 if not marked for delete, otherwise expected delete time
   @ApiModelProperty(
       value = "If greater than 0, then the date (milliseconds UTC) when this account was marked for deletion")
   @JsonProperty("markedForDelete")
-  private long                markedForDelete  = -1;
+  private long markedForDelete = -1;
 
+  // Credentials.  Until mid 2018, a sync account may have both an XML and ESI credential.  When added, we
+  // verify that credentials are consistent and refer to the same character ID.  After mid 2018, XML credentials
+  // will be retired as the servers will be shut down.
+
+  //////////////////////////////
+  // XML API credentials
+  //////////////////////////////
+
+  // XML API key
+  @ApiModelProperty(
+      value = "EVE XML API access key")
+  @JsonProperty("eveKey")
+  private int eveKey = -1;
+
+  // XML API VCode
+  @ApiModelProperty(
+      value = "EVE XML API access vcode")
+  @JsonProperty("eveVCode")
+  private String eveVCode;
+
+  //////////////////////////////
+  // ESI credentials
+  //////////////////////////////
+
+  // Space delimited list of scopes attached to this key when it was created
+  @Lob
+  @Column(
+      length = 102400)
+  @JsonProperty("scopes")
+  private String scopes;
+
+  // Latest access token
+  private String accessToken;
+
+  // Expiry date (millis UTC) of access token
+  @JsonProperty("accessTokenExpiry")
+  private long accessTokenExpiry = -1;
+
+  // Latest refresh token
+  private String refreshToken;
+
+  // True if refresh token is non-null and non-empty, false otherwise.
+  // Set before returning token data to web client.
+  @Transient
+  @ApiModelProperty(
+      value = "Valid"
+  )
+  @JsonProperty("valid")
+  private boolean valid;
+
+  /**
+   * No argument constructor sometimes required for Hibernate.
+   */
   public SynchronizedEveAccount() {}
 
-  public SynchronizedEveAccount(String name, boolean ischar, boolean autoSynchronized, int eveKey, String eveVCode, long eveCharacterID,
-                                String eveCharacterName, long eveCorporationID, String eveCorporationName) {
+  /**
+   * Create a new account.
+   *
+   * @param user             owner of this account (this can never be changed).
+   * @param name             name of this account (may be changed later).
+   * @param ischar           whether this account will a character or corporation (this can never be changed).
+   * @param autoSynchronized whether EveKit should automatically synchronized this account (may be changed later).
+   */
+  public SynchronizedEveAccount(EveKitUserAccount user, String name, boolean ischar, boolean autoSynchronized) {
+    this.userAccount = user;
     this.name = name;
     this.characterType = ischar;
     this.autoSynchronized = autoSynchronized;
-    this.eveKey = eveKey;
-    this.eveVCode = eveVCode;
-    this.eveCharacterID = eveCharacterID;
-    this.eveCharacterName = eveCharacterName;
-    this.eveCorporationID = eveCorporationID;
-    this.eveCorporationName = eveCorporationName;
   }
 
   public EveKitUserAccount getUserAccount() {
     return userAccount;
-  }
-
-  public void setUserAccount(
-                             EveKitUserAccount o) {
-    userAccount = o;
   }
 
   public long getAid() {
@@ -193,7 +254,7 @@ public class SynchronizedEveAccount {
   }
 
   public void setName(
-                      String name) {
+      String name) {
     this.name = name;
   }
 
@@ -201,72 +262,29 @@ public class SynchronizedEveAccount {
     return characterType;
   }
 
-  public void setCharacterType(
-                               boolean characterType) {
-    this.characterType = characterType;
-  }
-
   public boolean isAutoSynchronized() {
     return autoSynchronized;
   }
 
   public void setAutoSynchronized(
-                                  boolean autoSynchronized) {
+      boolean autoSynchronized) {
     this.autoSynchronized = autoSynchronized;
-  }
-
-  public int getEveKey() {
-    return eveKey;
-  }
-
-  public void setEveKey(
-                        int eveKey) {
-    this.eveKey = eveKey;
-  }
-
-  public String getEveVCode() {
-    return eveVCode;
-  }
-
-  public void setEveVCode(
-                          String eveVCode) {
-    this.eveVCode = eveVCode;
   }
 
   public long getEveCharacterID() {
     return eveCharacterID;
   }
 
-  public void setEveCharacterID(
-                                long eveCharacterID) {
-    this.eveCharacterID = eveCharacterID;
-  }
-
   public String getEveCharacterName() {
     return eveCharacterName;
-  }
-
-  public void setEveCharacterName(
-                                  String eveCharacterName) {
-    this.eveCharacterName = eveCharacterName;
   }
 
   public long getEveCorporationID() {
     return eveCorporationID;
   }
 
-  public void setEveCorporationID(
-                                  long eveCorporationID) {
-    this.eveCorporationID = eveCorporationID;
-  }
-
   public String getEveCorporationName() {
     return eveCorporationName;
-  }
-
-  public void setEveCorporationName(
-                                    String eveCorporationName) {
-    this.eveCorporationName = eveCorporationName;
   }
 
   public long getLastSynchronized() {
@@ -274,7 +292,7 @@ public class SynchronizedEveAccount {
   }
 
   public void setLastSynchronized(
-                                  long lastSynchronized) {
+      long lastSynchronized) {
     this.lastSynchronized = lastSynchronized;
   }
 
@@ -283,363 +301,718 @@ public class SynchronizedEveAccount {
   }
 
   public void setMarkedForDelete(
-                                 long markedForDelete) {
+      long markedForDelete) {
     this.markedForDelete = markedForDelete;
+  }
+
+  public int getEveKey() {
+    return eveKey;
+  }
+
+  public String getEveVCode() {
+    return eveVCode;
+  }
+
+  public String getScopes() {
+    return scopes;
+  }
+
+  public String getAccessToken() {
+    return accessToken;
+  }
+
+  public long getAccessTokenExpiry() {
+    return accessTokenExpiry;
+  }
+
+  public String getRefreshToken() {
+    return refreshToken;
+  }
+
+  public boolean isValid() {
+    return valid;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+
+    SynchronizedEveAccount that = (SynchronizedEveAccount) o;
+
+    if (aid != that.aid) return false;
+    if (created != that.created) return false;
+    if (characterType != that.characterType) return false;
+    return userAccount.equals(that.userAccount);
   }
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + (int) (aid ^ (aid >>> 32));
-    result = prime * result + (autoSynchronized ? 1231 : 1237);
-    result = prime * result + (characterType ? 1231 : 1237);
-    result = prime * result + (int) (created ^ (created >>> 32));
-    result = prime * result + (int) (eveCharacterID ^ (eveCharacterID >>> 32));
-    result = prime * result + ((eveCharacterName == null) ? 0 : eveCharacterName.hashCode());
-    result = prime * result + (int) (eveCorporationID ^ (eveCorporationID >>> 32));
-    result = prime * result + ((eveCorporationName == null) ? 0 : eveCorporationName.hashCode());
-    result = prime * result + eveKey;
-    result = prime * result + ((eveVCode == null) ? 0 : eveVCode.hashCode());
-    result = prime * result + (int) (markedForDelete ^ (markedForDelete >>> 32));
-    result = prime * result + ((name == null) ? 0 : name.hashCode());
-    result = prime * result + ((userAccount == null) ? 0 : userAccount.hashCode());
+    int result = (int) (aid ^ (aid >>> 32));
+    result = 31 * result + userAccount.hashCode();
+    result = 31 * result + (int) (created ^ (created >>> 32));
+    result = 31 * result + (characterType ? 1 : 0);
     return result;
   }
 
   @Override
-  public boolean equals(
-                        Object obj) {
-    if (this == obj) return true;
-    if (obj == null) return false;
-    if (getClass() != obj.getClass()) return false;
-    SynchronizedEveAccount other = (SynchronizedEveAccount) obj;
-    if (aid != other.aid) return false;
-    if (autoSynchronized != other.autoSynchronized) return false;
-    if (characterType != other.characterType) return false;
-    if (created != other.created) return false;
-    if (eveCharacterID != other.eveCharacterID) return false;
-    if (eveCharacterName == null) {
-      if (other.eveCharacterName != null) return false;
-    } else if (!eveCharacterName.equals(other.eveCharacterName)) return false;
-    if (eveCorporationID != other.eveCorporationID) return false;
-    if (eveCorporationName == null) {
-      if (other.eveCorporationName != null) return false;
-    } else if (!eveCorporationName.equals(other.eveCorporationName)) return false;
-    if (eveKey != other.eveKey) return false;
-    if (eveVCode == null) {
-      if (other.eveVCode != null) return false;
-    } else if (!eveVCode.equals(other.eveVCode)) return false;
-    if (markedForDelete != other.markedForDelete) return false;
-    if (name == null) {
-      if (other.name != null) return false;
-    } else if (!name.equals(other.name)) return false;
-    if (userAccount == null) {
-      if (other.userAccount != null) return false;
-    } else if (!userAccount.equals(other.userAccount)) return false;
-    return true;
-  }
-
-  @Override
   public String toString() {
-    return "SynchronizedEveAccount [aid=" + aid + ", userAccount=" + userAccount + ", created=" + created + ", name=" + name + ", characterType="
-        + characterType + ", autoSynchronized=" + autoSynchronized + ", eveKey=" + eveKey + ", eveVCode=" + eveVCode + ", eveCharacterID=" + eveCharacterID
-        + ", eveCharacterName=" + eveCharacterName + ", eveCorporationID=" + eveCorporationID + ", eveCorporationName=" + eveCorporationName
-        + ", lastSynchronized=" + lastSynchronized + ", markedForDelete=" + markedForDelete + "]";
+    return "SynchronizedEveAccount{" +
+        "aid=" + aid +
+        ", userAccount=" + userAccount +
+        ", created=" + created +
+        ", name='" + name + '\'' +
+        ", characterType=" + characterType +
+        ", autoSynchronized=" + autoSynchronized +
+        ", eveCharacterID=" + eveCharacterID +
+        ", eveCharacterName='" + eveCharacterName + '\'' +
+        ", eveCorporationID=" + eveCorporationID +
+        ", eveCorporationName='" + eveCorporationName + '\'' +
+        ", lastSynchronized=" + lastSynchronized +
+        ", markedForDelete=" + markedForDelete +
+        ", eveKey=" + eveKey +
+        ", eveVCode='" + eveVCode + '\'' +
+        ", scopes='" + scopes + '\'' +
+        ", accessToken='" + accessToken + '\'' +
+        ", accessTokenExpiry=" + accessTokenExpiry +
+        ", refreshToken='" + refreshToken + '\'' +
+        ", valid=" + valid +
+        '}';
   }
 
-  public static SynchronizedEveAccount createSynchronizedEveAccount(
-                                                                    final EveKitUserAccount userAccount,
-                                                                    final String name,
-                                                                    final boolean isChar,
-                                                                    final boolean autoSync,
-                                                                    final int key,
-                                                                    final String vCode,
-                                                                    final long charID,
-                                                                    final String charName,
-                                                                    final long corpID,
-                                                                    final String corpName)
-    throws AccountCreationException {
-    SynchronizedEveAccount newAccount = null;
+  public boolean hasXMLKey() {
+    return eveKey != -1;
+  }
+
+  public boolean hasESIKey() {
+    return accessToken != null;
+  }
+
+  /**
+   * Update the valid state of an ESI credential.  This method is normally called
+   * before returning an account to a web client so that proper ESI status can
+   * be displayed.
+   */
+  public void updateValid() {
+    valid = refreshToken != null && !refreshToken.isEmpty();
+  }
+
+  /**
+   * Create and commit a new synchronized account.
+   *
+   * @param userAccount account owner
+   * @param name        name of new account (must be unique for this owner)
+   * @param isChar      true if this account will sync a character, false otherwise
+   * @param autoSync    true if this account will auto-synchronize
+   * @return the new committed account
+   * @throws AccountCreationException if the selected name is already in use.
+   * @throws IOException              on any other error (including database errors)
+   */
+  public static SynchronizedEveAccount createSynchronizedEveAccount(final EveKitUserAccount userAccount,
+                                                                    final String name, final boolean isChar,
+                                                                    final boolean autoSync)
+      throws AccountCreationException, IOException {
     try {
-      newAccount = EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<SynchronizedEveAccount>() {
-        @Override
-        public SynchronizedEveAccount run() throws Exception {
-          // Throw exception if account with given name already exists
-          SynchronizedEveAccount result = getSynchronizedAccount(userAccount, name, true);
-          if (result != null) return null;
-          result = new SynchronizedEveAccount(name, isChar, autoSync, key, vCode, charID, charName, corpID, corpName);
-          result.userAccount = userAccount;
-          result.created = OrbitalProperties.getCurrentTime();
-          return EveKitUserAccountProvider.getFactory().getEntityManager().merge(result);
-        }
-      });
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        try {
+                                          getSynchronizedAccount(userAccount, name, true);
+                                          // If we get here then account already exists, throw exception
+                                          throw new AccountCreationException("Account with name " + String.valueOf(name) + " already exists");
+                                        } catch (AccountNotFoundException e) {
+                                          // Proceed with account creation
+                                          SynchronizedEveAccount result = new SynchronizedEveAccount(userAccount, name, isChar, autoSync);
+                                          result.created = OrbitalProperties.getCurrentTime();
+                                          return EveKitUserAccountProvider.getFactory()
+                                                                          .getEntityManager()
+                                                                          .merge(result);
+                                        }
+                                      });
     } catch (Exception e) {
+      if (e.getCause() instanceof AccountCreationException) throw (AccountCreationException) e.getCause();
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    if (newAccount == null) throw new AccountCreationException("Account with name " + name + " already exists");
-    return newAccount;
   }
 
-  public static SynchronizedEveAccount getSynchronizedAccount(
-                                                              final EveKitUserAccount owner,
+  /**
+   * Get a synchronized account by name.
+   *
+   * @param owner                  account owner
+   * @param name                   name of account to retrieve
+   * @param includeMarkedForDelete if true, also search accounts that are marked for deletion
+   * @return the named account for the named owner, or null if the account can not be found.
+   * @throws AccountNotFoundException if the specified account could not be found
+   * @throws IOException              on any database error
+   */
+  public static SynchronizedEveAccount getSynchronizedAccount(final EveKitUserAccount owner,
                                                               final String name,
-                                                              final boolean includeMarkedForDelete) {
+                                                              final boolean includeMarkedForDelete)
+      throws AccountNotFoundException, IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<SynchronizedEveAccount>() {
-        @Override
-        public SynchronizedEveAccount run() throws Exception {
-          TypedQuery<SynchronizedEveAccount> getter = EveKitUserAccountProvider.getFactory().getEntityManager()
-              .createNamedQuery(includeMarkedForDelete ? "SynchronizedEveAccount.findByAcctAndNameIncludeMarked" : "SynchronizedEveAccount.findByAcctAndName",
-                                SynchronizedEveAccount.class);
-          getter.setParameter("account", owner);
-          getter.setParameter("name", name);
-          try {
-            return getter.getSingleResult();
-          } catch (NoResultException e) {
-            return null;
-          }
-        }
-      });
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        TypedQuery<SynchronizedEveAccount> getter = EveKitUserAccountProvider.getFactory()
+                                                                                                             .getEntityManager()
+                                                                                                             .createNamedQuery(includeMarkedForDelete ? "SynchronizedEveAccount.findByAcctAndNameIncludeMarked" : "SynchronizedEveAccount.findByAcctAndName",
+                                                                                                                               SynchronizedEveAccount.class);
+                                        getter.setParameter("account", owner);
+                                        getter.setParameter("name", name);
+                                        try {
+                                          return getter.getSingleResult();
+                                        } catch (NoResultException e) {
+                                          throw new AccountNotFoundException();
+                                        }
+                                      });
     } catch (Exception e) {
+      if (e.getCause() instanceof AccountNotFoundException) throw (AccountNotFoundException) e.getCause();
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
   }
 
-  public static SynchronizedEveAccount getSynchronizedAccount(
-                                                              final EveKitUserAccount owner,
+  /**
+   * Get a synchronized account by ID.
+   *
+   * @param owner                  account owner
+   * @param id                     account ID
+   * @param includeMarkedForDelete if true, also search accounts that are marked for deletion
+   * @return the account with the specified ID and owner, or null if the account can not be found.
+   * @throws AccountNotFoundException if the specified account could not be found
+   * @throws IOException              on any database error
+   */
+  public static SynchronizedEveAccount getSynchronizedAccount(final EveKitUserAccount owner,
                                                               final long id,
-                                                              final boolean includeMarkedForDelete) {
+                                                              final boolean includeMarkedForDelete)
+      throws AccountNotFoundException, IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<SynchronizedEveAccount>() {
-        @Override
-        public SynchronizedEveAccount run() throws Exception {
-          TypedQuery<SynchronizedEveAccount> getter = EveKitUserAccountProvider.getFactory().getEntityManager()
-              .createNamedQuery(includeMarkedForDelete ? "SynchronizedEveAccount.findByAcctAndIdIncludeMarked" : "SynchronizedEveAccount.findByAcctAndId",
-                                SynchronizedEveAccount.class);
-          getter.setParameter("account", owner);
-          getter.setParameter("aid", id);
-          try {
-            return getter.getSingleResult();
-          } catch (NoResultException e) {
-            return null;
-          }
-        }
-      });
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        TypedQuery<SynchronizedEveAccount> getter = EveKitUserAccountProvider.getFactory()
+                                                                                                             .getEntityManager()
+                                                                                                             .createNamedQuery(includeMarkedForDelete ? "SynchronizedEveAccount.findByAcctAndIdIncludeMarked" : "SynchronizedEveAccount.findByAcctAndId",
+                                                                                                                               SynchronizedEveAccount.class);
+                                        getter.setParameter("account", owner);
+                                        getter.setParameter("aid", id);
+                                        try {
+                                          return getter.getSingleResult();
+                                        } catch (NoResultException e) {
+                                          throw new AccountNotFoundException();
+                                        }
+                                      });
     } catch (Exception e) {
+      if (e.getCause() instanceof AccountNotFoundException) throw (AccountNotFoundException) e.getCause();
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
   }
 
-  public static List<SynchronizedEveAccount> getAllAccounts(
-                                                            final EveKitUserAccount owner,
-                                                            final boolean includeMarkedForDelete) {
+  /**
+   * Get all accounts for a given owner.
+   *
+   * @param owner                  Accounts owner
+   * @param includeMarkedForDelete if true, also search accounts that are marked for deletion
+   * @return the list of accounts associated with the given user
+   * @throws IOException on any database error
+   */
+  public static List<SynchronizedEveAccount> getAllAccounts(final EveKitUserAccount owner,
+                                                            final boolean includeMarkedForDelete)
+      throws IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<List<SynchronizedEveAccount>>() {
-        @Override
-        public List<SynchronizedEveAccount> run() throws Exception {
-          TypedQuery<SynchronizedEveAccount> getter = EveKitUserAccountProvider.getFactory().getEntityManager()
-              .createNamedQuery(includeMarkedForDelete ? "SynchronizedEveAccount.findByAcctIncludeMarked" : "SynchronizedEveAccount.findByAcct",
-                                SynchronizedEveAccount.class);
-          getter.setParameter("account", owner);
-          return getter.getResultList();
-        }
-      });
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        TypedQuery<SynchronizedEveAccount> getter = EveKitUserAccountProvider.getFactory()
+                                                                                                             .getEntityManager()
+                                                                                                             .createNamedQuery(includeMarkedForDelete ? "SynchronizedEveAccount.findByAcctIncludeMarked" : "SynchronizedEveAccount.findByAcct",
+                                                                                                                               SynchronizedEveAccount.class);
+                                        getter.setParameter("account", owner);
+                                        return getter.getResultList();
+                                      });
     } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
   }
 
-  public static SynchronizedEveAccount deleteAccount(
-                                                     final EveKitUserAccount owner,
-                                                     final long id) {
+  /**
+   * Mark an account for deletion.
+   *
+   * @param owner account owner
+   * @param id    account ID
+   * @return the account after being marked
+   * @throws AccountNotFoundException if the specified account could not be found
+   * @throws IOException              on any database error
+   */
+  public static SynchronizedEveAccount deleteAccount(final EveKitUserAccount owner,
+                                                     final long id)
+      throws AccountNotFoundException, IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<SynchronizedEveAccount>() {
-        @Override
-        public SynchronizedEveAccount run() throws Exception {
-          SynchronizedEveAccount acct = getSynchronizedAccount(owner, id, false);
-          if (acct == null) {
-            log.warning("Account not found for marking, ignoring: owner=" + owner + " id=" + id);
-            return null;
-          }
-          acct.setMarkedForDelete(OrbitalProperties.getCurrentTime());
-          return EveKitUserAccountProvider.getFactory().getEntityManager().merge(acct);
-        }
-      });
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        SynchronizedEveAccount acct = getSynchronizedAccount(owner, id, false);
+                                        if (acct == null)
+                                          throw new AccountNotFoundException("Account not found for deletion: owner=" + String.valueOf(owner) + " id=" + id);
+                                        // If already marked for delete, don't remark
+                                        if (acct.getMarkedForDelete() > 0)
+                                          return acct;
+                                        acct.setMarkedForDelete(OrbitalProperties.getCurrentTime());
+                                        return EveKitUserAccountProvider.getFactory()
+                                                                        .getEntityManager()
+                                                                        .merge(acct);
+                                      });
     } catch (Exception e) {
+      if (e.getCause() instanceof AccountNotFoundException)
+        throw (AccountNotFoundException) e.getCause();
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
   }
 
-  public static SynchronizedEveAccount restoreAccount(
-                                                      final EveKitUserAccount owner,
-                                                      final long id) {
+  /**
+   * Unmark an account for deletion.
+   *
+   * @param owner account owner
+   * @param id    account ID
+   * @return the account after being unmarked
+   * @throws AccountNotFoundException if the specified account could not be found
+   * @throws IOException              on any database error
+   */
+  public static SynchronizedEveAccount restoreAccount(final EveKitUserAccount owner,
+                                                      final long id)
+      throws AccountNotFoundException, IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<SynchronizedEveAccount>() {
-        @Override
-        public SynchronizedEveAccount run() throws Exception {
-          SynchronizedEveAccount acct = getSynchronizedAccount(owner, id, true);
-          if (acct == null) {
-            log.warning("Account not found for restoring, ignoring: owner=" + owner + " id=" + id);
-            return null;
-          }
-          acct.setMarkedForDelete(-1);
-          return EveKitUserAccountProvider.getFactory().getEntityManager().merge(acct);
-        }
-      });
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        SynchronizedEveAccount acct = getSynchronizedAccount(owner, id, true);
+                                        if (acct == null)
+                                          throw new AccountNotFoundException("Account not found for restoring: owner=" + String.valueOf(owner) + " id=" + id);
+                                        acct.setMarkedForDelete(-1);
+                                        return EveKitUserAccountProvider.getFactory()
+                                                                        .getEntityManager()
+                                                                        .merge(acct);
+                                      });
     } catch (Exception e) {
+      if (e.getCause() instanceof AccountNotFoundException)
+        throw (AccountNotFoundException) e.getCause();
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
   }
 
-  public static void updateAccount(
-                                   final EveKitUserAccount owner,
-                                   final long id,
-                                   final String name,
-                                   final boolean isChar,
-                                   final boolean autoSync,
-                                   final int key,
-                                   final String vCode,
-                                   final long charID,
-                                   final String charName,
-                                   final long corpID,
-                                   final String corpName)
-    throws AccountCreationException {
-    AccountCreationException result = null;
+  /**
+   * Update existing account information.
+   *
+   * @param owner    account owner
+   * @param id       account ID
+   * @param name     new account name
+   * @param autoSync new auto synchronization setting
+   * @return account after updates
+   * @throws AccountUpdateException   if the new name conflicts with the name of another existing account for the same user
+   * @throws AccountNotFoundException if the target account can not be found
+   * @throws IOException              on any database error
+   */
+  public static SynchronizedEveAccount updateAccount(final EveKitUserAccount owner, final long id, final String name,
+                                                     final boolean autoSync)
+      throws AccountUpdateException, AccountNotFoundException, IOException {
     try {
-      result = EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<AccountCreationException>() {
-        @Override
-        public AccountCreationException run() throws Exception {
-          // No change if account with requested name does not exist
-          SynchronizedEveAccount result = getSynchronizedAccount(owner, id, false);
-          if (result == null) return null;
-          if (!name.equals(result.getName())) {
-            // If account name is changing, then verify account with new name does not already exist
-            SynchronizedEveAccount check = getSynchronizedAccount(owner, name, true);
-            if (check != null) return new AccountCreationException("Account with target name \"" + name + "\" already exists");
-            result.setName(name);
-          }
-          result.setCharacterType(isChar);
-          result.setAutoSynchronized(autoSync);
-          result.setEveKey(key);
-          result.setEveVCode(vCode);
-          result.setEveCharacterID(charID);
-          result.setEveCharacterName(charName);
-          result.setEveCorporationID(corpID);
-          result.setEveCorporationName(corpName);
-          EveKitUserAccountProvider.getFactory().getEntityManager().merge(result);
-          return null;
-        }
-      });
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        // No change if account with requested name does not exist
+                                        SynchronizedEveAccount result = getSynchronizedAccount(owner, id, false);
+                                        if (result == null)
+                                          throw new AccountNotFoundException("No account owned by " + String.valueOf(owner) + " with id: " + id);
+                                        if (!name.equals(result.getName())) {
+                                          // If account name is changing, then verify account with new name does not already exist
+                                          SynchronizedEveAccount check = getSynchronizedAccount(owner, name, true);
+                                          if (check != null)
+                                            throw new AccountUpdateException("Account with target name \"" + String.valueOf(name) + "\" already exists");
+                                          result.setName(name);
+                                        }
+                                        result.setAutoSynchronized(autoSync);
+                                        return update(result);
+                                      });
     } catch (Exception e) {
+      if (e.getCause() instanceof AccountUpdateException)
+        throw (AccountUpdateException) e.getCause();
+      if (e.getCause() instanceof AccountNotFoundException)
+        throw (AccountNotFoundException) e.getCause();
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    if (result != null) throw result;
   }
 
+  /**
+   * Remove XML credential from a synchronized account.  If this operation leaves the account with no credentials,
+   * then character and corporation information is also cleared.
+   *
+   * @param owner account owner
+   * @param id    account ID
+   * @return the account after removal, if successful.  Otherwise, null.
+   * @throws AccountNotFoundException if the target account can not be found
+   * @throws IOException              on any database error
+   */
+  public static SynchronizedEveAccount clearXMLCredential(final EveKitUserAccount owner, final long id)
+      throws AccountNotFoundException, IOException {
+    // Covers transitions:
+    // XML -> NONE
+    // BOTH -> ESI
+    try {
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        // No change if account with requested name does not exist
+                                        SynchronizedEveAccount result = getSynchronizedAccount(owner, id, false);
+                                        if (result == null)
+                                          throw new AccountNotFoundException("No account owned by " + String.valueOf(owner) + " with id: " + id);
+                                        result.eveKey = -1;
+                                        result.eveVCode = null;
+                                        if (!result.hasESIKey()) {
+                                          result.eveCharacterID = -1;
+                                          result.eveCharacterName = null;
+                                          result.eveCorporationID = -1;
+                                          result.eveCorporationName = null;
+                                        }
+                                        return update(result);
+                                      });
+    } catch (Exception e) {
+      if (e.getCause() instanceof AccountNotFoundException)
+        throw (AccountNotFoundException) e.getCause();
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
+      log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
+    }
+  }
+
+  /**
+   * Remove ESI credential from a synchronized account.  If this operation leaves the account with no credentials,
+   * then character and corporation information is also cleared.
+   *
+   * @param owner account owner
+   * @param id    account ID
+   * @return the account after removal, if successful.  Otherwise, null.
+   * @throws AccountNotFoundException if the target account can not be found
+   * @throws IOException              on any database error
+   */
+  public static SynchronizedEveAccount clearESICredential(final EveKitUserAccount owner, final long id)
+      throws AccountNotFoundException, IOException {
+    // Covers transitions:
+    // ESI -> NONE
+    // BOTH -> XML
+    try {
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        // No change if account with requested name does not exist
+                                        SynchronizedEveAccount result = getSynchronizedAccount(owner, id, false);
+                                        if (result == null)
+                                          throw new AccountNotFoundException("No account owned by " + String.valueOf(owner) + " with id: " + id);
+                                        result.accessToken = null;
+                                        result.accessTokenExpiry = -1;
+                                        result.refreshToken = null;
+                                        result.scopes = null;
+                                        if (!result.hasXMLKey()) {
+                                          result.eveCharacterID = -1;
+                                          result.eveCharacterName = null;
+                                          result.eveCorporationID = -1;
+                                          result.eveCorporationName = null;
+                                        }
+                                        return update(result);
+                                      });
+    } catch (Exception e) {
+      if (e.getCause() instanceof AccountNotFoundException)
+        throw (AccountNotFoundException) e.getCause();
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
+      log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
+    }
+  }
+
+  /**
+   * Set XML credential on an account.
+   *
+   * @param owner           account owner
+   * @param id              account ID
+   * @param key             XML API access key
+   * @param vcode           XML API access verification code
+   * @param characterID     character ID associated with credential
+   * @param characterName   character name associated with credential
+   * @param corporationID   corporation ID associated with credential
+   * @param corporationName corporation name associated with credential
+   * @return the account after modification, if successful.  Otherwise, null.
+   * @throws AccountUpdateException   if the new char/corp information does not agree with an existing credential.
+   * @throws AccountNotFoundException if the target account can not be found
+   * @throws IOException              on any database error
+   */
+  public static SynchronizedEveAccount setXMLCredential(final EveKitUserAccount owner, final long id,
+                                                        final int key, final String vcode,
+                                                        final long characterID, final String characterName,
+                                                        final long corporationID, final String corporationName)
+      throws AccountUpdateException, AccountNotFoundException, IOException {
+    // Covers transitions:
+    // NONE -> XML
+    // ESI -> BOTH
+    try {
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        // No change if account with requested name does not exist
+                                        SynchronizedEveAccount result = getSynchronizedAccount(owner, id, false);
+                                        if (result == null)
+                                          throw new AccountNotFoundException("No account owned by " + String.valueOf(owner) + " with id: " + id);
+                                        if (result.hasESIKey()) {
+                                          // Verify character and corporation does not conflict
+                                          if (characterID != result.eveCharacterID ||
+                                              !characterName.equals(result.eveCharacterName) ||
+                                              corporationID != result.eveCorporationID ||
+                                              !corporationName.equals(result.eveCorporationName))
+                                            throw new AccountUpdateException("New char/corp information inconsistent with existing credential");
+                                        }
+                                        result.eveKey = key;
+                                        result.eveVCode = vcode;
+                                        result.eveCharacterID = characterID;
+                                        result.eveCharacterName = characterName;
+                                        result.eveCorporationID = corporationID;
+                                        result.eveCorporationName = corporationName;
+                                        return update(result);
+                                      });
+    } catch (Exception e) {
+      if (e.getCause() instanceof AccountUpdateException)
+        throw (AccountUpdateException) e.getCause();
+      if (e.getCause() instanceof AccountNotFoundException)
+        throw (AccountNotFoundException) e.getCause();
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
+      log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
+    }
+  }
+
+  /**
+   * Set ESI credential on an account.
+   *
+   * @param owner             account owner
+   * @param id                account ID
+   * @param accessToken       ESI access token
+   * @param accessTokenExpiry ESI access token expiry (milliseconds UTC)
+   * @param refreshToken      ESI refresh token
+   * @param characterID       character ID associated with credential
+   * @param characterName     character name associated with credential
+   * @param corporationID     corporation ID associated with credential
+   * @param corporationName   corporation name associated with credential
+   * @return the account after modification, if successful.  Otherwise, null.
+   * @throws AccountUpdateException   if the new char/corp information does not agree with an existing credential.
+   * @throws AccountNotFoundException if the target account can not be found
+   * @throws IOException              on any database error
+   */
+  public static SynchronizedEveAccount setESICredential(final EveKitUserAccount owner, final long id,
+                                                        final String accessToken, final long accessTokenExpiry,
+                                                        final String refreshToken, final String scopes,
+                                                        final long characterID, final String characterName,
+                                                        final long corporationID, final String corporationName)
+      throws AccountUpdateException, AccountNotFoundException, IOException {
+    // Covers transitions:
+    // NONE -> ESI
+    // XML -> BOTH
+    try {
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        // No change if account with requested name does not exist
+                                        SynchronizedEveAccount result = getSynchronizedAccount(owner, id, false);
+                                        if (result == null)
+                                          throw new AccountNotFoundException("No account owned by " + String.valueOf(owner) + " with id: " + id);
+                                        if (result.hasXMLKey()) {
+                                          // Verify character and corporation does not conflict
+                                          if (characterID != result.eveCharacterID ||
+                                              !characterName.equals(result.eveCharacterName) ||
+                                              corporationID != result.eveCorporationID ||
+                                              !corporationName.equals(result.eveCorporationName))
+                                            throw new AccountUpdateException("New char/corp information inconsistent with existing credential");
+                                        }
+                                        result.accessToken = accessToken;
+                                        result.accessTokenExpiry = accessTokenExpiry;
+                                        result.refreshToken = refreshToken;
+                                        result.scopes = scopes;
+                                        result.eveCharacterID = characterID;
+                                        result.eveCharacterName = characterName;
+                                        result.eveCorporationID = corporationID;
+                                        result.eveCorporationName = corporationName;
+                                        return update(result);
+                                      });
+    } catch (Exception e) {
+      if (e.getCause() instanceof AccountUpdateException)
+        throw (AccountUpdateException) e.getCause();
+      if (e.getCause() instanceof AccountNotFoundException)
+        throw (AccountNotFoundException) e.getCause();
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
+      log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
+    }
+  }
+
+  /**
+   * Get all accounts marked for auto synchronization.
+   *
+   * @param includeMarkedForDelete if true, include accounts that are marked for deletion.
+   * @return the list of marked accounts
+   * @throws IOException on any database error
+   */
   public static List<SynchronizedEveAccount> getAllAutoSyncAccounts(
-                                                                    final boolean includeMarkedForDelete) {
+      final boolean includeMarkedForDelete) throws IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<List<SynchronizedEveAccount>>() {
-        @Override
-        public List<SynchronizedEveAccount> run() throws Exception {
-          TypedQuery<SynchronizedEveAccount> getter = EveKitUserAccountProvider.getFactory().getEntityManager()
-              .createNamedQuery(includeMarkedForDelete ? "SynchronizedEveAccount.findAllAutoSyncIncludeMarked" : "SynchronizedEveAccount.findAllAutoSync",
-                                SynchronizedEveAccount.class);
-          return getter.getResultList();
-        }
-      });
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        TypedQuery<SynchronizedEveAccount> getter = EveKitUserAccountProvider.getFactory()
+                                                                                                             .getEntityManager()
+                                                                                                             .createNamedQuery(includeMarkedForDelete ? "SynchronizedEveAccount.findAllAutoSyncIncludeMarked" : "SynchronizedEveAccount.findAllAutoSync",
+                                                                                                                               SynchronizedEveAccount.class);
+                                        return getter.getResultList();
+                                      });
     } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
   }
 
-  public static List<SynchronizedEveAccount> getAllMarkedForDelete() {
+  /**
+   * Get all accounts marked for deletion.
+   *
+   * @return the list of marked accounts
+   * @throws IOException on any database error
+   */
+  public static List<SynchronizedEveAccount> getAllMarkedForDelete() throws IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<List<SynchronizedEveAccount>>() {
-        @Override
-        public List<SynchronizedEveAccount> run() throws Exception {
-          TypedQuery<SynchronizedEveAccount> getter = EveKitUserAccountProvider.getFactory().getEntityManager()
-              .createNamedQuery("SynchronizedEveAccount.findAllMarkedForDelete", SynchronizedEveAccount.class);
-          return getter.getResultList();
-        }
-      });
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        TypedQuery<SynchronizedEveAccount> getter = EveKitUserAccountProvider.getFactory()
+                                                                                                             .getEntityManager()
+                                                                                                             .createNamedQuery("SynchronizedEveAccount.findAllMarkedForDelete", SynchronizedEveAccount.class);
+                                        return getter.getResultList();
+                                      });
     } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
   }
 
-  public static void remove(
-                            final SynchronizedEveAccount toRemove) {
+  /**
+   * Remove a synchronized account including any linked account access keys.
+   * If this call returns without throwing an exception, then the account was successfully removed.
+   *
+   * @param toRemove the account to remove
+   * @throws IOException on any database error.
+   */
+  public static void remove(final SynchronizedEveAccount toRemove) throws IOException {
     try {
       // Remove Sync Trackers
       // Set of sync trackers could be quite large so we remove those in batches
       long lastRemoved = 0;
       do {
-        lastRemoved = EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<Long>() {
-          @Override
-          public Long run() throws Exception {
-            long removed = 0;
-            TypedQuery<SyncTracker> query = EveKitUserAccountProvider.getFactory().getEntityManager()
-                .createQuery("SELECT c FROM SyncTracker c where c.account = :account", SyncTracker.class);
-            query.setParameter("account", toRemove);
-            query.setMaxResults(1000);
-            for (SyncTracker next : query.getResultList()) {
-              EveKitUserAccountProvider.getFactory().getEntityManager().remove(next);
-              removed++;
-            }
-            return removed;
-          }
-        });
+        lastRemoved = EveKitUserAccountProvider.getFactory()
+                                               .runTransaction(() -> {
+                                                 long removed = 0;
+                                                 TypedQuery<SyncTracker> query = EveKitUserAccountProvider.getFactory()
+                                                                                                          .getEntityManager()
+                                                                                                          .createQuery("SELECT c FROM SyncTracker c where c.account = :account", SyncTracker.class);
+                                                 query.setParameter("account", toRemove);
+                                                 query.setMaxResults(1000);
+                                                 for (SyncTracker next : query.getResultList()) {
+                                                   EveKitUserAccountProvider.getFactory()
+                                                                            .getEntityManager()
+                                                                            .remove(next);
+                                                   removed++;
+                                                 }
+                                                 return removed;
+                                               });
       } while (lastRemoved > 0);
       // Remove Access Keys
-      EveKitUserAccountProvider.getFactory().runTransaction(new RunInVoidTransaction() {
-        @Override
-        public void run() throws Exception {
-          TypedQuery<SynchronizedAccountAccessKey> query = EveKitUserAccountProvider.getFactory().getEntityManager()
-              .createQuery("SELECT c FROM SynchronizedAccountAccessKey c where c.account = :account", SynchronizedAccountAccessKey.class);
-          query.setParameter("account", toRemove);
-          for (SynchronizedAccountAccessKey next : query.getResultList()) {
-            EveKitUserAccountProvider.getFactory().getEntityManager().remove(next);
-          }
-        }
-      });
+      EveKitUserAccountProvider.getFactory()
+                               .runTransaction(() -> {
+                                 TypedQuery<SynchronizedAccountAccessKey> query = EveKitUserAccountProvider.getFactory()
+                                                                                                           .getEntityManager()
+                                                                                                           .createQuery("SELECT c FROM SynchronizedAccountAccessKey c where c.account = :account", SynchronizedAccountAccessKey.class);
+                                 query.setParameter("account", toRemove);
+                                 for (SynchronizedAccountAccessKey next : query.getResultList()) {
+                                   EveKitUserAccountProvider.getFactory()
+                                                            .getEntityManager()
+                                                            .remove(next);
+                                 }
+                               });
       // Remove account
-      EveKitUserAccountProvider.getFactory().runTransaction(new RunInVoidTransaction() {
-        @Override
-        public void run() throws Exception {
-          // Refetch the account so we remove an attached instance
-          EveKitUserAccountProvider.getFactory().getEntityManager()
-              .remove(SynchronizedEveAccount.getSynchronizedAccount(toRemove.getUserAccount(), toRemove.getAid(), true));
-        }
-      });
+      EveKitUserAccountProvider.getFactory()
+                               .runTransaction(() -> {
+                                 // Refetch the account so we remove an attached instance
+                                 EveKitUserAccountProvider.getFactory()
+                                                          .getEntityManager()
+                                                          .remove(SynchronizedEveAccount.getSynchronizedAccount(toRemove.getUserAccount(), toRemove.getAid(), true));
+                               });
 
     } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
 
   }
 
-  public static SynchronizedEveAccount update(
-                                              final SynchronizedEveAccount data) {
+  /**
+   * Merge an account to the database.
+   *
+   * @param data the account to merge
+   * @return the merged account
+   * @throws IOException on any database error.
+   */
+  public static SynchronizedEveAccount update(final SynchronizedEveAccount data) throws IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<SynchronizedEveAccount>() {
-        @Override
-        public SynchronizedEveAccount run() throws Exception {
-          return EveKitUserAccountProvider.getFactory().getEntityManager().merge(data);
-        }
-      });
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() ->
+                                                          EveKitUserAccountProvider.getFactory()
+                                                                                   .getEntityManager()
+                                                                                   .merge(data));
     } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
+  }
+
+  /**
+   * Refresh the access token for this account.
+   *
+   * @param expiryWindow expiry window in milliseconds.  If the access token will expire within this many
+   *                     milliseconds, then refresh it even if it's not expired yet.  In other words,
+   *                     guarantee the access token will be valid for this many milliseconds.
+   * @param eveClientID  EVE SSO authentication client ID.
+   * @param eveSecretKey EVE SSO authentication secret key
+   * @return an access token valid for at least "expiryWindow" milliseconds.
+   * @throws IOException if the access token could not be refreshed, or a database error occurred.
+   */
+  public String refreshToken(long expiryWindow, String eveClientID, String eveSecretKey)
+      throws IOException {
+    SynchronizedEveAccount account = this;
+    // Ensure the access token is valid, if not attempt to renew it
+    if (getAccessTokenExpiry() - OrbitalProperties.getCurrentTime() < expiryWindow) {
+      // Key within expiry window, refresh
+      String refreshToken = getRefreshToken();
+      if (refreshToken == null) throw new IOException("No valid refresh token for account: " + getAid());
+      OAuth2AccessToken newToken = EVEAuthHandler.doRefresh(eveClientID, eveSecretKey, refreshToken);
+      if (newToken == null) {
+        // Invalidate refresh token
+        refreshToken = null;
+        update(this);
+        throw new IOException("Failed to refresh token for credential: " + getAid());
+      }
+      accessToken = newToken.getAccessToken();
+      accessTokenExpiry = OrbitalProperties.getCurrentTime() +
+          TimeUnit.MILLISECONDS.convert(newToken.getExpiresIn(), TimeUnit.SECONDS);
+      refreshToken = newToken.getRefreshToken();
+      account = update(account);
+    }
+    return account.getAccessToken();
   }
 
 }

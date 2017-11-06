@@ -30,8 +30,7 @@ public class CorporationSyncTrackerTest extends TestBase {
     super.setUp();
     userAccount = EveKitUserAccount.createNewUserAccount(true, true);
     try {
-      testAccount = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true, true, 1234, "abcd", 5678, "charname", 8765,
-                                                                        "corpname");
+      testAccount = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true, true);
     } catch (AccountCreationException e) {
       throw new IOException(e);
     }

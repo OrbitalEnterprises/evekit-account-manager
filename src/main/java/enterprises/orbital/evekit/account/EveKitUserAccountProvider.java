@@ -6,6 +6,8 @@ import enterprises.orbital.oauth.UserAccount;
 import enterprises.orbital.oauth.UserAccountProvider;
 import enterprises.orbital.oauth.UserAuthSource;
 
+import java.io.IOException;
+
 public class EveKitUserAccountProvider implements UserAccountProvider {
   public static final String USER_ACCOUNT_PU_PROP    = "enterprises.orbital.evekit.account.persistence_unit";
   public static final String USER_ACCOUNT_PU_DEFAULT = "evekit-production";
@@ -22,35 +24,59 @@ public class EveKitUserAccountProvider implements UserAccountProvider {
     } catch (NumberFormatException e) {
       user_id = 0;
     }
-    return EveKitUserAccount.getAccount(user_id);
+    try {
+      return EveKitUserAccount.getAccount(user_id);
+    } catch (UserNotFoundException | IOException e) {
+      return null;
+    }
   }
 
   @Override
   public UserAuthSource getSource(UserAccount acct, String source) {
     assert acct instanceof EveKitUserAccount;
-    return EveKitUserAuthSource.getSource((EveKitUserAccount) acct, source);
+    try {
+      return EveKitUserAuthSource.getSource((EveKitUserAccount) acct, source);
+    } catch (AuthSourceNotFoundException | IOException e) {
+      return null;
+    }
   }
 
   @Override
   public void removeSourceIfExists(UserAccount acct, String source) {
     assert acct instanceof EveKitUserAccount;
-    EveKitUserAuthSource.removeSourceIfExists((EveKitUserAccount) acct, source);
+    try {
+      EveKitUserAuthSource.removeSourceIfExists((EveKitUserAccount) acct, source);
+    } catch (IOException e) {
+      // ignore
+    }
   }
 
   @Override
   public UserAuthSource getBySourceScreenname(String source, String screenName) {
-    return EveKitUserAuthSource.getBySourceScreenname(source, screenName);
+    try {
+      return EveKitUserAuthSource.getBySourceScreenname(source, screenName);
+    } catch (IOException e) {
+      return null;
+    }
   }
 
   @Override
   public UserAuthSource createSource(UserAccount newUser, String source, String screenName, String body) {
     assert newUser instanceof EveKitUserAccount;
-    return EveKitUserAuthSource.createSource((EveKitUserAccount) newUser, source, screenName, body);
+    try {
+      return EveKitUserAuthSource.createSource((EveKitUserAccount) newUser, source, screenName, body);
+    } catch (IOException e) {
+      return null;
+    }
   }
 
   @Override
   public UserAccount createNewUserAccount(boolean disabled) {
-    return EveKitUserAccount.createNewUserAccount(false, !disabled);
+    try {
+      return EveKitUserAccount.createNewUserAccount(false, !disabled);
+    } catch (IOException e) {
+      return null;
+    }
   }
 
 }

@@ -7,7 +7,7 @@
   </parent>
   <groupId>enterprises.orbital.evekit</groupId>
   <artifactId>account-manager</artifactId>
-  <version>3.1.0</version>
+  <version>4.0.0</version>
   <name>EveKit Account Manager</name>
   <description>EveKit account manager services</description>
   <url>https://github.com/OrbitalEnterprises/evekit-account-manager</url>

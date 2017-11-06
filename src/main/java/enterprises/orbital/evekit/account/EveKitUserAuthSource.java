@@ -70,6 +70,7 @@ import io.swagger.annotations.ApiModelProperty;
 public class EveKitUserAuthSource implements UserAuthSource {
   private static final Logger log  = Logger.getLogger(EveKitUserAuthSource.class.getName());
 
+  // Unique source ID
   @Id
   @GeneratedValue(
       strategy = GenerationType.SEQUENCE,
@@ -83,20 +84,28 @@ public class EveKitUserAuthSource implements UserAuthSource {
       value = "Unique source ID")
   @JsonProperty("sid")
   protected long              sid;
+
+  // Owner to which this source is attached
   @ManyToOne
   @JoinColumn(
       name = "uid",
       referencedColumnName = "uid")
   @JsonProperty("account")
   private EveKitUserAccount   account;
+
+  // Source name
   @ApiModelProperty(
       value = "Name of authentication source")
   @JsonProperty("source")
   private String              source;
+
+  // "screen" name of user when authenticated using this source
   @ApiModelProperty(
       value = "Screen name for this source")
   @JsonProperty("screenName")
   private String              screenName;
+
+  // authentication details for user when using this rouce
   @ApiModelProperty(
       value = "Source specific authentication details")
   @JsonProperty("details")
@@ -104,6 +113,8 @@ public class EveKitUserAuthSource implements UserAuthSource {
   @Column(
       length = 102400)
   private String              details;
+
+  // Date when this source was last used
   @ApiModelProperty(
       value = "Last time (milliseconds UTC) this source was used to authenticate")
   @JsonProperty("last")
@@ -196,11 +207,9 @@ public class EveKitUserAuthSource implements UserAuthSource {
 
   public static EveKitUserAuthSource getSource(
                                                final EveKitUserAccount acct,
-                                               final String source) {
+                                               final String source) throws AuthSourceNotFoundException, IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<EveKitUserAuthSource>() {
-        @Override
-        public EveKitUserAuthSource run() throws Exception {
+      return EveKitUserAccountProvider.getFactory().runTransaction(() -> {
           TypedQuery<EveKitUserAuthSource> getter = EveKitUserAccountProvider.getFactory().getEntityManager()
               .createNamedQuery("EveKitUserAuthSource.findByAcctAndSource", EveKitUserAuthSource.class);
           getter.setParameter("account", acct);
@@ -208,77 +217,70 @@ public class EveKitUserAuthSource implements UserAuthSource {
           try {
             return getter.getSingleResult();
           } catch (NoResultException e) {
-            return null;
+            throw new AuthSourceNotFoundException();
           }
-        }
-      });
+        });
     } catch (Exception e) {
+      if (e.getCause() instanceof AuthSourceNotFoundException) throw (AuthSourceNotFoundException) e.getCause();
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
   }
 
   public static List<EveKitUserAuthSource> getAllSources(
-                                                         final EveKitUserAccount acct) {
+                                                         final EveKitUserAccount acct) throws IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<List<EveKitUserAuthSource>>() {
-        @Override
-        public List<EveKitUserAuthSource> run() throws Exception {
+      return EveKitUserAccountProvider.getFactory().runTransaction(() -> {
           TypedQuery<EveKitUserAuthSource> getter = EveKitUserAccountProvider.getFactory().getEntityManager()
               .createNamedQuery("EveKitUserAuthSource.allSourcesByAcct", EveKitUserAuthSource.class);
           getter.setParameter("account", acct);
           return getter.getResultList();
-        }
-      });
+        });
     } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
   }
 
   public static EveKitUserAuthSource getLastUsedSource(
-                                                       final EveKitUserAccount acct) {
+                                                       final EveKitUserAccount acct) throws IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<EveKitUserAuthSource>() {
-        @Override
-        public EveKitUserAuthSource run() throws Exception {
+      return EveKitUserAccountProvider.getFactory().runTransaction(() -> {
           TypedQuery<EveKitUserAuthSource> getter = EveKitUserAccountProvider.getFactory().getEntityManager()
               .createNamedQuery("EveKitUserAuthSource.allSourcesByAcct", EveKitUserAuthSource.class);
           getter.setParameter("account", acct);
           getter.setMaxResults(1);
           List<EveKitUserAuthSource> results = getter.getResultList();
           return results.isEmpty() ? null : results.get(0);
-        }
-      });
+        });
     } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
   }
 
   public static List<EveKitUserAuthSource> getAll() throws IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<List<EveKitUserAuthSource>>() {
-        @Override
-        public List<EveKitUserAuthSource> run() throws Exception {
+      return EveKitUserAccountProvider.getFactory().runTransaction(() -> {
           TypedQuery<EveKitUserAuthSource> getter = EveKitUserAccountProvider.getFactory().getEntityManager().createNamedQuery("EveKitUserAuthSource.all",
                                                                                                                                EveKitUserAuthSource.class);
           return getter.getResultList();
-        }
-      });
+        });
     } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
   }
 
   public static EveKitUserAuthSource getBySourceScreenname(
                                                            final String source,
-                                                           final String screenName) {
+                                                           final String screenName) throws IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<EveKitUserAuthSource>() {
-        @Override
-        public EveKitUserAuthSource run() throws Exception {
+      return EveKitUserAccountProvider.getFactory().runTransaction(() -> {
           TypedQuery<EveKitUserAuthSource> getter = EveKitUserAccountProvider.getFactory().getEntityManager()
               .createNamedQuery("EveKitUserAuthSource.allBySourceAndScreenname", EveKitUserAuthSource.class);
           getter.setParameter("source", source);
@@ -286,93 +288,92 @@ public class EveKitUserAuthSource implements UserAuthSource {
           getter.setMaxResults(1);
           List<EveKitUserAuthSource> results = getter.getResultList();
           return results.isEmpty() ? null : results.get(0);
-        }
-      });
+        });
     } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
   }
 
   public static EveKitUserAuthSource updateAccount(
                                                    final EveKitUserAuthSource src,
-                                                   final EveKitUserAccount newAccount) {
+                                                   final EveKitUserAccount newAccount) throws IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<EveKitUserAuthSource>() {
-        @Override
-        public EveKitUserAuthSource run() throws Exception {
-          EveKitUserAuthSource result = getSource(src.getUserAccount(), src.getSource());
-          if (result == null) throw new IOException("Input source could not be found: " + src.toString());
-          EveKitUserAccount account = EveKitUserAccount.getAccount(Long.valueOf(newAccount.getUid()));
-          if (account == null) throw new IOException("New account could not be found: " + newAccount.getUid());
-          result.account = newAccount;
-          return EveKitUserAccountProvider.getFactory().getEntityManager().merge(result);
-        }
-      });
+      return EveKitUserAccountProvider.getFactory().runTransaction(() -> {
+          src.account = newAccount;
+          return EveKitUserAccountProvider.getFactory().getEntityManager().merge(src);
+        });
     } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
   }
 
   public static EveKitUserAuthSource createSource(
                                                   final EveKitUserAccount owner,
                                                   final String source,
                                                   final String screenName,
-                                                  final String details) {
+                                                  final String details) throws IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<EveKitUserAuthSource>() {
-        @Override
-        public EveKitUserAuthSource run() throws Exception {
-          EveKitUserAuthSource result = getSource(owner, source);
-          if (result != null) return result;
-          result = new EveKitUserAuthSource();
-          result.account = owner;
-          result.source = source;
-          result.setScreenName(screenName);
-          result.setDetails(details);
-          result.setLast(OrbitalProperties.getCurrentTime());
-          return EveKitUserAccountProvider.getFactory().getEntityManager().merge(result);
-        }
-      });
+      return EveKitUserAccountProvider.getFactory().runTransaction(() -> {
+          try {
+            // Return the source if we already have one
+            return getSource(owner, source);
+          } catch (AuthSourceNotFoundException e) {
+            // Otherwise, create a new source
+            EveKitUserAuthSource result = new EveKitUserAuthSource();
+            result.account = owner;
+            result.source = source;
+            result.setScreenName(screenName);
+            result.setDetails(details);
+            result.setLast(OrbitalProperties.getCurrentTime());
+            return EveKitUserAccountProvider.getFactory()
+                                            .getEntityManager()
+                                            .merge(result);
+          }
+        });
     } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
   }
 
   public static void removeSourceIfExists(
                                           final EveKitUserAccount owner,
-                                          final String source) {
+                                          final String source) throws IOException {
     try {
-      EveKitUserAccountProvider.getFactory().runTransaction(new RunInVoidTransaction() {
-        @Override
-        public void run() throws Exception {
-          EveKitUserAuthSource result = getSource(owner, source);
-          if (result != null) EveKitUserAccountProvider.getFactory().getEntityManager().remove(result);
-        }
-      });
+      EveKitUserAccountProvider.getFactory().runTransaction(() -> {
+          try {
+            EveKitUserAuthSource result = getSource(owner, source);
+            EveKitUserAccountProvider.getFactory()
+                                                         .getEntityManager()
+                                                         .remove(result);
+          } catch (AuthSourceNotFoundException e) {
+            // ignore
+          }
+        });
     } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
   }
 
   public static EveKitUserAuthSource touch(
-                                           final EveKitUserAuthSource source) {
+                                           final EveKitUserAuthSource source) throws IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<EveKitUserAuthSource>() {
-        @Override
-        public EveKitUserAuthSource run() throws Exception {
-          EveKitUserAuthSource result = getSource(source.getUserAccount(), source.getSource());
-          if (result == null) throw new IOException("Input source could not be found: " + source.toString());
-          result.setLast(OrbitalProperties.getCurrentTime());
-          return EveKitUserAccountProvider.getFactory().getEntityManager().merge(result);
-        }
-      });
+      return EveKitUserAccountProvider.getFactory().runTransaction(() -> {
+          source.setLast(OrbitalProperties.getCurrentTime());
+          return EveKitUserAccountProvider.getFactory().getEntityManager().merge(source);
+        });
     } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
   }
 
   @Override
@@ -382,14 +383,22 @@ public class EveKitUserAuthSource implements UserAuthSource {
 
   @Override
   public void touch() {
-    touch(this);
+    try {
+      touch(this);
+    } catch (IOException e) {
+      // ignore
+    }
   }
 
   @Override
   public void updateAccount(
                             UserAccount existing) {
     assert existing instanceof EveKitUserAccount;
-    updateAccount(this, (EveKitUserAccount) existing);
+    try {
+      updateAccount(this, (EveKitUserAccount) existing);
+    } catch (IOException e) {
+      // ignore
+    }
   }
 
   @Override

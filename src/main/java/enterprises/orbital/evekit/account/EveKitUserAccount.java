@@ -1,31 +1,19 @@
 package enterprises.orbital.evekit.account;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import enterprises.orbital.base.OrbitalProperties;
+import enterprises.orbital.base.PersistentPropertyKey;
+import enterprises.orbital.oauth.UserAccount;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+
+import javax.persistence.*;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.NamedQueries;
-import javax.persistence.NamedQuery;
-import javax.persistence.NoResultException;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
-import javax.persistence.TypedQuery;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-
-import enterprises.orbital.base.OrbitalProperties;
-import enterprises.orbital.base.PersistentPropertyKey;
-import enterprises.orbital.db.ConnectionFactory.RunInTransaction;
-import enterprises.orbital.oauth.UserAccount;
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
 
 /**
  * User account entries
@@ -46,11 +34,12 @@ import io.swagger.annotations.ApiModelProperty;
 @JsonSerialize(
     typing = JsonSerialize.Typing.DYNAMIC)
 public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<String> {
-  private static final Logger log                         = Logger.getLogger(EveKitUserAccount.class.getName());
+  private static final Logger log = Logger.getLogger(EveKitUserAccount.class.getName());
 
   // Constants for commonly used properties
-  public static final String  PROP_STATIC_DB_ACCESS_LIMIT = "StaticDBAccessLimit";
+  public static final String PROP_STATIC_DB_ACCESS_LIMIT = "StaticDBAccessLimit";
 
+  // Unique user ID
   @Id
   @GeneratedValue(
       strategy = GenerationType.SEQUENCE,
@@ -63,23 +52,31 @@ public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<Str
   @ApiModelProperty(
       value = "Unique user ID")
   @JsonProperty("uid")
-  protected long              uid;
+  protected long uid;
+
+  // True if this user is active
   @ApiModelProperty(
       value = "True if user is active, false otherwise")
   @JsonProperty("active")
-  protected boolean           active;
+  protected boolean active;
+
+  // Date when this user was created
   @ApiModelProperty(
       value = "Date (milliseconds UTC) when account was created")
   @JsonProperty("created")
-  protected long              created                     = -1;
+  protected long created = -1;
+
+  // True if this user is an administrator
   @ApiModelProperty(
       value = "True if user is an admin, false otherwise")
   @JsonProperty("admin")
-  protected boolean           admin;
+  protected boolean admin;
+
+  // Date when this user last logged in
   @ApiModelProperty(
       value = "Last time (milliseconds UTC) user logged in")
   @JsonProperty("last")
-  protected long              last                        = -1;
+  protected long last = -1;
 
   public long getID() {
     return uid;
@@ -95,7 +92,7 @@ public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<Str
   }
 
   public void setActive(
-                        boolean active) {
+      boolean active) {
     this.active = active;
   }
 
@@ -103,17 +100,12 @@ public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<Str
     return created;
   }
 
-  public void setCreated(
-                         long created) {
-    this.created = created;
-  }
-
   public boolean isAdmin() {
     return admin;
   }
 
   public void setAdmin(
-                       boolean admin) {
+      boolean admin) {
     this.admin = admin;
   }
 
@@ -122,7 +114,7 @@ public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<Str
   }
 
   public void setLast(
-                      long last) {
+      long last) {
     this.last = last;
   }
 
@@ -140,7 +132,7 @@ public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<Str
 
   @Override
   public boolean equals(
-                        Object obj) {
+      Object obj) {
     if (this == obj) return true;
     if (obj == null) return false;
     if (getClass() != obj.getClass()) return false;
@@ -170,107 +162,111 @@ public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<Str
 
   /**
    * Create a new user account.
-   * 
-   * @param admin
-   *          true if this user should be created with administrative privileges.
-   * @param active
-   *          true if this user should be initially active.
+   *
+   * @param admin  true if this user should be created with administrative privileges.
+   * @param active true if this user should be initially active.
    * @return the new EveKitUserAccount.
+   * @throws IOException on any database error
    */
   public static EveKitUserAccount createNewUserAccount(
-                                                       final boolean admin,
-                                                       final boolean active) {
+      final boolean admin,
+      final boolean active) throws IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<EveKitUserAccount>() {
-        @Override
-        public EveKitUserAccount run() throws Exception {
-          EveKitUserAccount result = new EveKitUserAccount();
-          result.active = active;
-          result.created = OrbitalProperties.getCurrentTime();
-          result.admin = admin;
-          result.last = result.created;
-          return EveKitUserAccountProvider.getFactory().getEntityManager().merge(result);
-        }
-      });
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        EveKitUserAccount result = new EveKitUserAccount();
+                                        result.active = active;
+                                        result.created = OrbitalProperties.getCurrentTime();
+                                        result.admin = admin;
+                                        result.last = result.created;
+                                        return EveKitUserAccountProvider.getFactory()
+                                                                        .getEntityManager()
+                                                                        .merge(result);
+                                      });
     } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
   }
 
   /**
    * Retrieve the user account with the given id.
-   * 
-   * @param uid
-   *          the ID of the user account to retrieve.
+   *
+   * @param uid the ID of the user account to retrieve.
    * @return the given UserAccount, or null if no such user exists.
+   * @throws UserNotFoundException if no user with the given ID was found
+   * @throws IOException           on any database error
    */
   public static EveKitUserAccount getAccount(
-                                             final long uid) {
+      final long uid) throws UserNotFoundException, IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<EveKitUserAccount>() {
-        @Override
-        public EveKitUserAccount run() throws Exception {
-          TypedQuery<EveKitUserAccount> getter = EveKitUserAccountProvider.getFactory().getEntityManager().createNamedQuery("EveKitUserAccount.findByUid",
-                                                                                                                            EveKitUserAccount.class);
-          getter.setParameter("uid", uid);
-          try {
-            return getter.getSingleResult();
-          } catch (NoResultException e) {
-            return null;
-          }
-        }
-      });
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        TypedQuery<EveKitUserAccount> getter = EveKitUserAccountProvider.getFactory()
+                                                                                                        .getEntityManager()
+                                                                                                        .createNamedQuery("EveKitUserAccount.findByUid",
+                                                                                                                          EveKitUserAccount.class);
+                                        getter.setParameter("uid", uid);
+                                        try {
+                                          return getter.getSingleResult();
+                                        } catch (NoResultException e) {
+                                          throw new UserNotFoundException();
+                                        }
+                                      });
     } catch (Exception e) {
+      if (e.getCause() instanceof UserNotFoundException) throw (UserNotFoundException) e.getCause();
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
   }
 
   /**
    * Update the "last" time for this user to the current time.
-   * 
-   * @param user
-   *          the UserAccount to update.
-   * @return returns the newly persisted User.
+   *
+   * @param user the UserAccount to update.
+   * @return returns the newly persisted user.
+   * @throws IOException on any database error
    */
   public static EveKitUserAccount touch(
-                                        final EveKitUserAccount user) {
+      final EveKitUserAccount user) throws IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<EveKitUserAccount>() {
-        @Override
-        public EveKitUserAccount run() throws Exception {
-          EveKitUserAccount result = getAccount(user.uid);
-          if (result == null) throw new IOException("No user found with UUID " + user.getUid());
-          result.last = OrbitalProperties.getCurrentTime();
-          return EveKitUserAccountProvider.getFactory().getEntityManager().merge(result);
-        }
-      });
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        user.last = OrbitalProperties.getCurrentTime();
+                                        return EveKitUserAccountProvider.getFactory()
+                                                                        .getEntityManager()
+                                                                        .merge(user);
+                                      });
     } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
   }
 
   /**
    * Return list of all user accounts.
-   * 
+   *
    * @return the list of all current user accounts.
+   * @throws IOException on any database error;
    */
-  public static List<EveKitUserAccount> getAllAccounts() {
+  public static List<EveKitUserAccount> getAllAccounts() throws IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<List<EveKitUserAccount>>() {
-        @Override
-        public List<EveKitUserAccount> run() throws Exception {
-          TypedQuery<EveKitUserAccount> getter = EveKitUserAccountProvider.getFactory().getEntityManager().createNamedQuery("EveKitUserAccount.allAccounts",
-                                                                                                                            EveKitUserAccount.class);
-          return getter.getResultList();
-        }
-      });
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        TypedQuery<EveKitUserAccount> getter = EveKitUserAccountProvider.getFactory()
+                                                                                                        .getEntityManager()
+                                                                                                        .createNamedQuery("EveKitUserAccount.allAccounts",
+                                                                                                                          EveKitUserAccount.class);
+                                        return getter.getResultList();
+                                      });
     } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
   }
 
   @Override
@@ -280,7 +276,12 @@ public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<Str
 
   @Override
   public void touch() {
-    touch(this);
+    try {
+      touch(this);
+    } catch (IOException e) {
+      // Log but ignore
+      log.log(Level.WARNING, "Failed ot update last access time", e);
+    }
   }
 
   @Override
@@ -295,24 +296,25 @@ public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<Str
 
   @Override
   public String getPeristentPropertyKey(
-                                        String field) {
+      String field) {
     // Key scheme: EveKitUserAccount.<UUID>.<field>
     return "EveKitUserAccount." + String.valueOf(uid) + "." + field;
   }
 
   public static EveKitUserAccount update(
-                                         final EveKitUserAccount data) {
+      final EveKitUserAccount data) throws IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(new RunInTransaction<EveKitUserAccount>() {
-        @Override
-        public EveKitUserAccount run() throws Exception {
-          return EveKitUserAccountProvider.getFactory().getEntityManager().merge(data);
-        }
-      });
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() ->
+                                                          EveKitUserAccountProvider.getFactory()
+                                                                                   .getEntityManager()
+                                                                                   .merge(data)
+                                                     );
     } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
     }
-    return null;
   }
 
 }

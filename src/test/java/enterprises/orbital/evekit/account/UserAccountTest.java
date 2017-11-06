@@ -29,7 +29,7 @@ public class UserAccountTest extends TestBase {
   }
 
   @Test
-  public void testGetOrCreateExisting() throws IOException {
+  public void testGetOrCreateExisting() throws IOException, UserNotFoundException {
     EveKitUserAccount original = EveKitUserAccount.createNewUserAccount(true, true);
     EveKitUserAccount out = EveKitUserAccount.getAccount(Long.valueOf(original.getUid()));
     Assert.assertEquals(original, out);
