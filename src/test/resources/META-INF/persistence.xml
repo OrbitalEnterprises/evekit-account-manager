@@ -20,6 +20,7 @@
         <class>enterprises.orbital.evekit.model.CapsuleerSyncTracker</class>
         <class>enterprises.orbital.evekit.model.CorporationSyncTracker</class>
         <class>enterprises.orbital.evekit.model.RefSyncTracker</class>
+        <class>enterprises.orbital.evekit.model.ESIEndpointSyncTracker</class>
         <class>enterprises.orbital.evekit.model.SyncTracker</class>
 
         <properties>

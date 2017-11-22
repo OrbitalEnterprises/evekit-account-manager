@@ -10,7 +10,9 @@ import io.swagger.annotations.ApiModelProperty;
 
 import javax.persistence.*;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -217,6 +219,9 @@ public class SynchronizedEveAccount {
   @JsonProperty("valid")
   private boolean valid;
 
+  @Transient
+  private Set<String> scopeSet;
+
   /**
    * No argument constructor sometimes required for Hibernate.
    */
@@ -331,6 +336,21 @@ public class SynchronizedEveAccount {
 
   public boolean isValid() {
     return valid;
+  }
+
+  public boolean hasScope(String scopeName) {
+    if (scopes == null) return false;
+    if (scopeSet == null) {
+      synchronized (this) {
+        if (scopeSet == null) {
+          scopeSet = new HashSet<>();
+          for (String scopeEntry : scopes.split(" ")) {
+            scopeSet.add(scopeEntry);
+          }
+        }
+      }
+    }
+    return scopeSet.contains(scopeName);
   }
 
   @Override
@@ -629,10 +649,14 @@ public class SynchronizedEveAccount {
                                           throw new AccountNotFoundException("No account owned by " + String.valueOf(owner) + " with id: " + id);
                                         if (!name.equals(result.getName())) {
                                           // If account name is changing, then verify account with new name does not already exist
-                                          SynchronizedEveAccount check = getSynchronizedAccount(owner, name, true);
-                                          if (check != null)
+                                          try {
+                                            getSynchronizedAccount(owner, name, true);
+                                            // If no exception is thrown then this name exists so we can't use it
                                             throw new AccountUpdateException("Account with target name \"" + String.valueOf(name) + "\" already exists");
-                                          result.setName(name);
+                                          } catch (AccountNotFoundException e) {
+                                            // Name not in use, proceed
+                                            result.setName(name);
+                                          }
                                         }
                                         result.setAutoSynchronized(autoSync);
                                         return update(result);
@@ -755,6 +779,7 @@ public class SynchronizedEveAccount {
       throws AccountUpdateException, AccountNotFoundException, IOException {
     // Covers transitions:
     // NONE -> XML
+    // XML -> XML
     // ESI -> BOTH
     try {
       return EveKitUserAccountProvider.getFactory()
@@ -763,13 +788,15 @@ public class SynchronizedEveAccount {
                                         SynchronizedEveAccount result = getSynchronizedAccount(owner, id, false);
                                         if (result == null)
                                           throw new AccountNotFoundException("No account owned by " + String.valueOf(owner) + " with id: " + id);
-                                        if (result.hasESIKey()) {
-                                          // Verify character and corporation does not conflict
+                                        if (result.hasESIKey() || result.hasXMLKey()) {
+                                          // Verify character and corporation does not conflict with existing credential.
+                                          // Note that if an XML credential already exists, we'll allow the update as long
+                                          // as the character and corporation are identical.
                                           if (characterID != result.eveCharacterID ||
                                               !characterName.equals(result.eveCharacterName) ||
                                               corporationID != result.eveCorporationID ||
                                               !corporationName.equals(result.eveCorporationName))
-                                            throw new AccountUpdateException("New char/corp information inconsistent with existing credential");
+                                            throw new AccountUpdateException("New char/corp information inconsistent with existing ESI credential");
                                         }
                                         result.eveKey = key;
                                         result.eveVCode = vcode;
@@ -816,21 +843,24 @@ public class SynchronizedEveAccount {
       throws AccountUpdateException, AccountNotFoundException, IOException {
     // Covers transitions:
     // NONE -> ESI
+    // ESI -> ESI
     // XML -> BOTH
     try {
       return EveKitUserAccountProvider.getFactory()
                                       .runTransaction(() -> {
                                         // No change if account with requested name does not exist
+                                        // Note that if an ESI credential already exists, we'll allow the update as long
+                                        // as the character and corporation are identical.
                                         SynchronizedEveAccount result = getSynchronizedAccount(owner, id, false);
                                         if (result == null)
                                           throw new AccountNotFoundException("No account owned by " + String.valueOf(owner) + " with id: " + id);
-                                        if (result.hasXMLKey()) {
+                                        if (result.hasXMLKey() || result.hasESIKey()) {
                                           // Verify character and corporation does not conflict
                                           if (characterID != result.eveCharacterID ||
                                               !characterName.equals(result.eveCharacterName) ||
                                               corporationID != result.eveCorporationID ||
                                               !corporationName.equals(result.eveCorporationName))
-                                            throw new AccountUpdateException("New char/corp information inconsistent with existing credential");
+                                            throw new AccountUpdateException("New char/corp information inconsistent with existing XML credential");
                                         }
                                         result.accessToken = accessToken;
                                         result.accessTokenExpiry = accessTokenExpiry;
