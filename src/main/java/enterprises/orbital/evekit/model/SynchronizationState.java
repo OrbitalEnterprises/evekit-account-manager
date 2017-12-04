@@ -75,17 +75,12 @@ public enum SynchronizationState {
                                   SYNC_CORP_END(-1),
                                   SYNC_REF_START(-1),
                                   SYNC_REF_SERVERSTATUS(-1),
-                                  SYNC_REF_CALLS_LIST(-1),
                                   SYNC_REF_ALLIANCES(-1),
                                   SYNC_REF_CONQUERABLE(-1),
-                                  SYNC_REF_ERRORLIST(-1),
                                   SYNC_REF_FACWARSTATS(-1),
                                   SYNC_REF_FACWARTOPSTATS(-1),
-                                  SYNC_REF_REFTYPES(-1),
                                   SYNC_REF_SKILLTREE(-1),
                                   SYNC_REF_FACWARSYSTEMS(-1),
-                                  SYNC_REF_MAPJUMPS(-1),
-                                  SYNC_REF_MAPKILLS(-1),
                                   SYNC_REF_SOVEREIGNTY(-1),
                                   SYNC_REF_END(-1);
 

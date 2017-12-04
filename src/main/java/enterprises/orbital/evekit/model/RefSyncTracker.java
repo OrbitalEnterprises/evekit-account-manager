@@ -113,14 +113,6 @@ public class RefSyncTracker {
   @JsonProperty("serverStatusDetail")
   private String                serverStatusDetail;
   @ApiModelProperty(
-      value = "API Call List status")
-  @JsonProperty("callListStatus")
-  private SyncTracker.SyncState callListStatus;
-  @ApiModelProperty(
-      value = "API Call List detail")
-  @JsonProperty("callListDetail")
-  private String                callListDetail;
-  @ApiModelProperty(
       value = "Alliance list status")
   @JsonProperty("allianceListStatus")
   private SyncTracker.SyncState allianceListStatus;
@@ -136,14 +128,6 @@ public class RefSyncTracker {
       value = "Conquerable station list detail")
   @JsonProperty("conquerableStationsDetail")
   private String                conquerableStationsDetail;
-  @ApiModelProperty(
-      value = "Error list status")
-  @JsonProperty("errorListStatus")
-  private SyncTracker.SyncState errorListStatus;
-  @ApiModelProperty(
-      value = "Error list detail")
-  @JsonProperty("errorListDetail")
-  private String                errorListDetail;
   @ApiModelProperty(
       value = "Faction war stats status")
   @JsonProperty("facWarStatsStatus")
@@ -161,14 +145,6 @@ public class RefSyncTracker {
   @JsonProperty("facWarTopStatsDetail")
   private String                facWarTopStatsDetail;
   @ApiModelProperty(
-      value = "Reference type status")
-  @JsonProperty("refTypeStatus")
-  private SyncTracker.SyncState refTypeStatus;
-  @ApiModelProperty(
-      value = "Reference type detail")
-  @JsonProperty("refTypeDetail")
-  private String                refTypeDetail;
-  @ApiModelProperty(
       value = "Skill tree status")
   @JsonProperty("skillTreeStatus")
   private SyncTracker.SyncState skillTreeStatus;
@@ -185,22 +161,6 @@ public class RefSyncTracker {
   @JsonProperty("facWarSystemsDetail")
   private String                facWarSystemsDetail;
   @ApiModelProperty(
-      value = "Map jump status")
-  @JsonProperty("mapJumpStatus")
-  private SyncTracker.SyncState mapJumpStatus;
-  @ApiModelProperty(
-      value = "Map jump detail")
-  @JsonProperty("mapJumpDetail")
-  private String                mapJumpDetail;
-  @ApiModelProperty(
-      value = "Map kill status")
-  @JsonProperty("mapKillStatus")
-  private SyncTracker.SyncState mapKillStatus;
-  @ApiModelProperty(
-      value = "Map kill detail")
-  @JsonProperty("mapKillDetail")
-  private String                mapKillDetail;
-  @ApiModelProperty(
       value = "Sovereignty status")
   @JsonProperty("sovereigntyStatus")
   private SyncTracker.SyncState sovereigntyStatus;
@@ -211,17 +171,12 @@ public class RefSyncTracker {
 
   public RefSyncTracker() {
     serverStatusStatus = SyncTracker.SyncState.NOT_PROCESSED;
-    callListStatus = SyncTracker.SyncState.NOT_PROCESSED;
     allianceListStatus = SyncTracker.SyncState.NOT_PROCESSED;
     conquerableStationsStatus = SyncTracker.SyncState.NOT_PROCESSED;
-    errorListStatus = SyncTracker.SyncState.NOT_PROCESSED;
     facWarStatsStatus = SyncTracker.SyncState.NOT_PROCESSED;
     facWarTopStatsStatus = SyncTracker.SyncState.NOT_PROCESSED;
-    refTypeStatus = SyncTracker.SyncState.NOT_PROCESSED;
     skillTreeStatus = SyncTracker.SyncState.NOT_PROCESSED;
     facWarSystemsStatus = SyncTracker.SyncState.NOT_PROCESSED;
-    mapJumpStatus = SyncTracker.SyncState.NOT_PROCESSED;
-    mapKillStatus = SyncTracker.SyncState.NOT_PROCESSED;
     sovereigntyStatus = SyncTracker.SyncState.NOT_PROCESSED;
   }
 
@@ -276,10 +231,6 @@ public class RefSyncTracker {
       setServerStatusStatus(status);
       setServerStatusDetail(msg);
       break;
-    case SYNC_REF_CALLS_LIST:
-      setCallListStatus(status);
-      setCallListDetail(msg);
-      break;
     case SYNC_REF_ALLIANCES:
       setAllianceListStatus(status);
       setAllianceListDetail(msg);
@@ -287,10 +238,6 @@ public class RefSyncTracker {
     case SYNC_REF_CONQUERABLE:
       setConquerableStationsStatus(status);
       setConquerableStationsDetail(msg);
-      break;
-    case SYNC_REF_ERRORLIST:
-      setErrorListStatus(status);
-      setErrorListDetail(msg);
       break;
     case SYNC_REF_FACWARSTATS:
       setFacWarStatsStatus(status);
@@ -300,10 +247,6 @@ public class RefSyncTracker {
       setFacWarTopStatsStatus(status);
       setFacWarTopStatsDetail(msg);
       break;
-    case SYNC_REF_REFTYPES:
-      setRefTypeStatus(status);
-      setRefTypeDetail(msg);
-      break;
     case SYNC_REF_SKILLTREE:
       setSkillTreeStatus(status);
       setSkillTreeDetail(msg);
@@ -311,14 +254,6 @@ public class RefSyncTracker {
     case SYNC_REF_FACWARSYSTEMS:
       setFacWarSystemsStatus(status);
       setFacWarSystemsDetail(msg);
-      break;
-    case SYNC_REF_MAPJUMPS:
-      setMapJumpStatus(status);
-      setMapJumpDetail(msg);
-      break;
-    case SYNC_REF_MAPKILLS:
-      setMapKillStatus(status);
-      setMapKillDetail(msg);
       break;
     case SYNC_REF_SOVEREIGNTY:
       setSovereigntyStatus(status);
@@ -344,17 +279,11 @@ public class RefSyncTracker {
       case SYNC_REF_SERVERSTATUS:
         if (serverStatusStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
         break;
-      case SYNC_REF_CALLS_LIST:
-        if (callListStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
-        break;
       case SYNC_REF_ALLIANCES:
         if (allianceListStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
         break;
       case SYNC_REF_CONQUERABLE:
         if (conquerableStationsStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
-        break;
-      case SYNC_REF_ERRORLIST:
-        if (errorListStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
         break;
       case SYNC_REF_FACWARSTATS:
         if (facWarStatsStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
@@ -362,20 +291,11 @@ public class RefSyncTracker {
       case SYNC_REF_FACWARTOPSTATS:
         if (facWarTopStatsStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
         break;
-      case SYNC_REF_REFTYPES:
-        if (refTypeStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
-        break;
       case SYNC_REF_SKILLTREE:
         if (skillTreeStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
         break;
       case SYNC_REF_FACWARSYSTEMS:
         if (facWarSystemsStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
-        break;
-      case SYNC_REF_MAPJUMPS:
-        if (mapJumpStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
-        break;
-      case SYNC_REF_MAPKILLS:
-        if (mapKillStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
         break;
       case SYNC_REF_SOVEREIGNTY:
         if (sovereigntyStatus == SyncTracker.SyncState.NOT_PROCESSED) return next;
@@ -408,24 +328,6 @@ public class RefSyncTracker {
   public void setServerStatusDetail(
                                     String serverStatusDetail) {
     this.serverStatusDetail = serverStatusDetail;
-  }
-
-  public SyncTracker.SyncState getCallListStatus() {
-    return callListStatus;
-  }
-
-  public void setCallListStatus(
-                                SyncTracker.SyncState callListStatus) {
-    this.callListStatus = callListStatus;
-  }
-
-  public String getCallListDetail() {
-    return callListDetail;
-  }
-
-  public void setCallListDetail(
-                                String callListDetail) {
-    this.callListDetail = callListDetail;
   }
 
   public SyncTracker.SyncState getAllianceListStatus() {
@@ -464,24 +366,6 @@ public class RefSyncTracker {
     this.conquerableStationsDetail = conquerableStationsDetail;
   }
 
-  public SyncTracker.SyncState getErrorListStatus() {
-    return errorListStatus;
-  }
-
-  public void setErrorListStatus(
-                                 SyncTracker.SyncState errorListStatus) {
-    this.errorListStatus = errorListStatus;
-  }
-
-  public String getErrorListDetail() {
-    return errorListDetail;
-  }
-
-  public void setErrorListDetail(
-                                 String errorListDetail) {
-    this.errorListDetail = errorListDetail;
-  }
-
   public SyncTracker.SyncState getFacWarStatsStatus() {
     return facWarStatsStatus;
   }
@@ -516,24 +400,6 @@ public class RefSyncTracker {
   public void setFacWarTopStatsDetail(
                                       String facWarTopStatsDetail) {
     this.facWarTopStatsDetail = facWarTopStatsDetail;
-  }
-
-  public SyncTracker.SyncState getRefTypeStatus() {
-    return refTypeStatus;
-  }
-
-  public void setRefTypeStatus(
-                               SyncTracker.SyncState refTypeStatus) {
-    this.refTypeStatus = refTypeStatus;
-  }
-
-  public String getRefTypeDetail() {
-    return refTypeDetail;
-  }
-
-  public void setRefTypeDetail(
-                               String refTypeDetail) {
-    this.refTypeDetail = refTypeDetail;
   }
 
   public SyncTracker.SyncState getSkillTreeStatus() {
@@ -572,42 +438,6 @@ public class RefSyncTracker {
     this.facWarSystemsDetail = facWarSystemsDetail;
   }
 
-  public SyncTracker.SyncState getMapJumpStatus() {
-    return mapJumpStatus;
-  }
-
-  public void setMapJumpStatus(
-                               SyncTracker.SyncState mapJumpStatus) {
-    this.mapJumpStatus = mapJumpStatus;
-  }
-
-  public String getMapJumpDetail() {
-    return mapJumpDetail;
-  }
-
-  public void setMapJumpDetail(
-                               String mapJumpDetail) {
-    this.mapJumpDetail = mapJumpDetail;
-  }
-
-  public SyncTracker.SyncState getMapKillStatus() {
-    return mapKillStatus;
-  }
-
-  public void setMapKillStatus(
-                               SyncTracker.SyncState mapKillStatus) {
-    this.mapKillStatus = mapKillStatus;
-  }
-
-  public String getMapKillDetail() {
-    return mapKillDetail;
-  }
-
-  public void setMapKillDetail(
-                               String mapKillDetail) {
-    this.mapKillDetail = mapKillDetail;
-  }
-
   public SyncTracker.SyncState getSovereigntyStatus() {
     return sovereigntyStatus;
   }
@@ -632,12 +462,8 @@ public class RefSyncTracker {
     int result = 1;
     result = prime * result + ((allianceListDetail == null) ? 0 : allianceListDetail.hashCode());
     result = prime * result + ((allianceListStatus == null) ? 0 : allianceListStatus.hashCode());
-    result = prime * result + ((callListDetail == null) ? 0 : callListDetail.hashCode());
-    result = prime * result + ((callListStatus == null) ? 0 : callListStatus.hashCode());
     result = prime * result + ((conquerableStationsDetail == null) ? 0 : conquerableStationsDetail.hashCode());
     result = prime * result + ((conquerableStationsStatus == null) ? 0 : conquerableStationsStatus.hashCode());
-    result = prime * result + ((errorListDetail == null) ? 0 : errorListDetail.hashCode());
-    result = prime * result + ((errorListStatus == null) ? 0 : errorListStatus.hashCode());
     result = prime * result + ((facWarStatsDetail == null) ? 0 : facWarStatsDetail.hashCode());
     result = prime * result + ((facWarStatsStatus == null) ? 0 : facWarStatsStatus.hashCode());
     result = prime * result + ((facWarSystemsDetail == null) ? 0 : facWarSystemsDetail.hashCode());
@@ -645,12 +471,6 @@ public class RefSyncTracker {
     result = prime * result + ((facWarTopStatsDetail == null) ? 0 : facWarTopStatsDetail.hashCode());
     result = prime * result + ((facWarTopStatsStatus == null) ? 0 : facWarTopStatsStatus.hashCode());
     result = prime * result + (finished ? 1231 : 1237);
-    result = prime * result + ((mapJumpDetail == null) ? 0 : mapJumpDetail.hashCode());
-    result = prime * result + ((mapJumpStatus == null) ? 0 : mapJumpStatus.hashCode());
-    result = prime * result + ((mapKillDetail == null) ? 0 : mapKillDetail.hashCode());
-    result = prime * result + ((mapKillStatus == null) ? 0 : mapKillStatus.hashCode());
-    result = prime * result + ((refTypeDetail == null) ? 0 : refTypeDetail.hashCode());
-    result = prime * result + ((refTypeStatus == null) ? 0 : refTypeStatus.hashCode());
     result = prime * result + ((serverStatusDetail == null) ? 0 : serverStatusDetail.hashCode());
     result = prime * result + ((serverStatusStatus == null) ? 0 : serverStatusStatus.hashCode());
     result = prime * result + ((skillTreeDetail == null) ? 0 : skillTreeDetail.hashCode());
@@ -674,18 +494,10 @@ public class RefSyncTracker {
       if (other.allianceListDetail != null) return false;
     } else if (!allianceListDetail.equals(other.allianceListDetail)) return false;
     if (allianceListStatus != other.allianceListStatus) return false;
-    if (callListDetail == null) {
-      if (other.callListDetail != null) return false;
-    } else if (!callListDetail.equals(other.callListDetail)) return false;
-    if (callListStatus != other.callListStatus) return false;
     if (conquerableStationsDetail == null) {
       if (other.conquerableStationsDetail != null) return false;
     } else if (!conquerableStationsDetail.equals(other.conquerableStationsDetail)) return false;
     if (conquerableStationsStatus != other.conquerableStationsStatus) return false;
-    if (errorListDetail == null) {
-      if (other.errorListDetail != null) return false;
-    } else if (!errorListDetail.equals(other.errorListDetail)) return false;
-    if (errorListStatus != other.errorListStatus) return false;
     if (facWarStatsDetail == null) {
       if (other.facWarStatsDetail != null) return false;
     } else if (!facWarStatsDetail.equals(other.facWarStatsDetail)) return false;
@@ -699,18 +511,6 @@ public class RefSyncTracker {
     } else if (!facWarTopStatsDetail.equals(other.facWarTopStatsDetail)) return false;
     if (facWarTopStatsStatus != other.facWarTopStatsStatus) return false;
     if (finished != other.finished) return false;
-    if (mapJumpDetail == null) {
-      if (other.mapJumpDetail != null) return false;
-    } else if (!mapJumpDetail.equals(other.mapJumpDetail)) return false;
-    if (mapJumpStatus != other.mapJumpStatus) return false;
-    if (mapKillDetail == null) {
-      if (other.mapKillDetail != null) return false;
-    } else if (!mapKillDetail.equals(other.mapKillDetail)) return false;
-    if (mapKillStatus != other.mapKillStatus) return false;
-    if (refTypeDetail == null) {
-      if (other.refTypeDetail != null) return false;
-    } else if (!refTypeDetail.equals(other.refTypeDetail)) return false;
-    if (refTypeStatus != other.refTypeStatus) return false;
     if (serverStatusDetail == null) {
       if (other.serverStatusDetail != null) return false;
     } else if (!serverStatusDetail.equals(other.serverStatusDetail)) return false;
@@ -732,14 +532,10 @@ public class RefSyncTracker {
   @Override
   public String toString() {
     return "RefSyncTracker [tid=" + tid + ", syncStart=" + syncStart + ", finished=" + finished + ", syncEnd=" + syncEnd + ", serverStatusStatus="
-        + serverStatusStatus + ", serverStatusDetail=" + serverStatusDetail + ", callListStatus=" + callListStatus + ", callListDetail=" + callListDetail
-        + ", allianceListStatus=" + allianceListStatus + ", allianceListDetail=" + allianceListDetail + ", conquerableStationsStatus="
-        + conquerableStationsStatus + ", conquerableStationsDetail=" + conquerableStationsDetail + ", errorListStatus=" + errorListStatus + ", errorListDetail="
-        + errorListDetail + ", facWarStatsStatus=" + facWarStatsStatus + ", facWarStatsDetail=" + facWarStatsDetail + ", facWarTopStatsStatus="
-        + facWarTopStatsStatus + ", facWarTopStatsDetail=" + facWarTopStatsDetail + ", refTypeStatus=" + refTypeStatus + ", refTypeDetail=" + refTypeDetail
-        + ", skillTreeStatus=" + skillTreeStatus + ", skillTreeDetail=" + skillTreeDetail + ", facWarSystemsStatus=" + facWarSystemsStatus
-        + ", facWarSystemsDetail=" + facWarSystemsDetail + ", mapJumpStatus=" + mapJumpStatus + ", mapJumpDetail=" + mapJumpDetail + ", mapKillStatus="
-        + mapKillStatus + ", mapKillDetail=" + mapKillDetail + ", sovereigntyStatus=" + sovereigntyStatus + ", sovereigntyDetail=" + sovereigntyDetail + "]";
+        + serverStatusStatus + ", serverStatusDetail=" + serverStatusDetail + ", allianceListStatus=" + allianceListStatus + ", allianceListDetail=" + allianceListDetail + ", conquerableStationsStatus="
+        + conquerableStationsStatus + ", conquerableStationsDetail=" + conquerableStationsDetail + ", facWarStatsStatus=" + facWarStatsStatus + ", facWarStatsDetail=" + facWarStatsDetail + ", facWarTopStatsStatus="
+        + facWarTopStatsStatus + ", facWarTopStatsDetail=" + facWarTopStatsDetail + ", skillTreeStatus=" + skillTreeStatus + ", skillTreeDetail=" + skillTreeDetail + ", facWarSystemsStatus=" + facWarSystemsStatus
+        + ", facWarSystemsDetail=" + facWarSystemsDetail + ", sovereigntyStatus=" + sovereigntyStatus + ", sovereigntyDetail=" + sovereigntyDetail + "]";
   }
 
   public static RefSyncTracker finishTracker(
@@ -900,7 +696,6 @@ public class RefSyncTracker {
         public List<RefSyncTracker> run() throws Exception {
           TypedQuery<RefSyncTracker> getter = EveKitRefDataProvider.getFactory().getEntityManager().createNamedQuery("RefSyncTracker.getSummary",
                                                                                                                      RefSyncTracker.class);
-          getter.setParameter("account", fromDate);
           return getter.getResultList();
         }
       });
@@ -930,39 +725,24 @@ public class RefSyncTracker {
       if (next.serverStatusStatus == SyncState.SYNC_ERROR) {
         errorCount++;
         SyncTracker.incrementSummary("serverStatus", next.serverStatusDetail, data);
-      } else if (next.callListStatus == SyncState.SYNC_ERROR) {
-        errorCount++;
-        SyncTracker.incrementSummary("callList", next.callListDetail, data);
       } else if (next.allianceListStatus == SyncState.SYNC_ERROR) {
         errorCount++;
         SyncTracker.incrementSummary("allianceList", next.allianceListDetail, data);
       } else if (next.conquerableStationsStatus == SyncState.SYNC_ERROR) {
         errorCount++;
         SyncTracker.incrementSummary("conquerableStations", next.conquerableStationsDetail, data);
-      } else if (next.errorListStatus == SyncState.SYNC_ERROR) {
-        errorCount++;
-        SyncTracker.incrementSummary("errorList", next.errorListDetail, data);
       } else if (next.facWarStatsStatus == SyncState.SYNC_ERROR) {
         errorCount++;
         SyncTracker.incrementSummary("facWarStats", next.facWarStatsDetail, data);
       } else if (next.facWarTopStatsStatus == SyncState.SYNC_ERROR) {
         errorCount++;
         SyncTracker.incrementSummary("facWarTopStats", next.facWarTopStatsDetail, data);
-      } else if (next.refTypeStatus == SyncState.SYNC_ERROR) {
-        errorCount++;
-        SyncTracker.incrementSummary("refType", next.refTypeDetail, data);
       } else if (next.skillTreeStatus == SyncState.SYNC_ERROR) {
         errorCount++;
         SyncTracker.incrementSummary("skillTree", next.skillTreeDetail, data);
       } else if (next.facWarSystemsStatus == SyncState.SYNC_ERROR) {
         errorCount++;
         SyncTracker.incrementSummary("facWarSystems", next.facWarSystemsDetail, data);
-      } else if (next.mapJumpStatus == SyncState.SYNC_ERROR) {
-        errorCount++;
-        SyncTracker.incrementSummary("mapJump", next.mapJumpDetail, data);
-      } else if (next.mapKillStatus == SyncState.SYNC_ERROR) {
-        errorCount++;
-        SyncTracker.incrementSummary("mapKillStatus", next.mapKillDetail, data);
       } else if (next.sovereigntyStatus == SyncState.SYNC_ERROR) {
         errorCount++;
         SyncTracker.incrementSummary("sovereignty", next.sovereigntyDetail, data);
