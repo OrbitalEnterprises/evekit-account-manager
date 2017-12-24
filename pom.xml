@@ -7,7 +7,7 @@
   </parent>
   <groupId>enterprises.orbital.evekit</groupId>
   <artifactId>account-manager</artifactId>
-  <version>4.0.2</version>
+  <version>4.1.0</version>
   <name>EveKit Account Manager</name>
   <description>EveKit account manager services</description>
   <url>https://github.com/OrbitalEnterprises/evekit-account-manager</url>
@@ -17,7 +17,7 @@
     <developerConnection>scm:git:git@github.com:OrbitalEnterprises/evekit-account-manager.git</developerConnection>
   </scm>
   <properties>
-    <orbital.toolchain.version>2.3.0</orbital.toolchain.version>
+    <orbital.toolchain.version>2.4.0</orbital.toolchain.version>
     <swagger.version>1.5.7</swagger.version>
     <jackson.core.version>2.4.5</jackson.core.version>
     <hsqldb.version>2.3.3</hsqldb.version>
