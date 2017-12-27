@@ -13,8 +13,8 @@ package enterprises.orbital.evekit.model;
  * data for the endpoint.
  */
 public enum ESIRefSyncEndpoint {
-  // TODO
-  REF_SERVER_STATUS("EVE server status", null);
+  REF_SERVER_STATUS("EVE server status", null),
+  REF_ALLIANCE("EVE alliance list", null);
 
   String description;
   String scope;
