@@ -81,6 +81,7 @@ public class ESIRefEndpointSyncTracker {
   // Endpoint to be synchronized
   @ApiModelProperty(value = "endpoint")
   @JsonProperty("endpoint")
+  @Enumerated(EnumType.STRING)
   protected ESIRefSyncEndpoint endpoint;
 
   // Time when this tracker is scheduled to start

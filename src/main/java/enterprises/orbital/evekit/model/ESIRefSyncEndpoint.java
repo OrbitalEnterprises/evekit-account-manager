@@ -14,7 +14,16 @@ package enterprises.orbital.evekit.model;
  */
 public enum ESIRefSyncEndpoint {
   REF_SERVER_STATUS("EVE server status", null),
-  REF_ALLIANCE("EVE alliance list", null);
+  REF_ALLIANCE("EVE alliance list", null),
+  REF_SOV_MAP("EVE sovereignty map", null),
+  REF_SOV_CAMPAIGN("EVE sovereignty campaigns and participants", null),
+  REF_SOV_STRUCTURE("EVE sovereignty structures", null),
+  REF_FW_WARS("EVE faction wars", null),
+  REF_FW_STATS("EVE faction war statistical overview", null),
+  REF_FW_SYSTEMS("EVE faction war systems", null),
+  REF_FW_FACTION_LEADERBOARD("EVE faction war faction leader board", null),
+  REF_FW_CORP_LEADERBOARD("EVE faction war corporation leader board", null),
+  REF_FW_CHAR_LEADERBOARD("EVE faction war character leader board", null);
 
   String description;
   String scope;
