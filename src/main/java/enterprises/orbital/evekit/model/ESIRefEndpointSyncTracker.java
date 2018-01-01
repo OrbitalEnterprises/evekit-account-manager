@@ -52,11 +52,14 @@ import java.util.logging.Logger;
         name = "ESIRefEndpointSyncTracker.getUnfinished",
         query = "SELECT c FROM ESIRefEndpointSyncTracker c where c.endpoint = :endpoint and c.syncEnd = -1"),
     @NamedQuery(
+        name = "ESIRefEndpointSyncTracker.getAllUnfinished",
+        query = "SELECT c FROM ESIRefEndpointSyncTracker c where c.syncEnd = -1"),
+    @NamedQuery(
         name = "ESIRefEndpointSyncTracker.getLastFinished",
         query = "SELECT c FROM ESIRefEndpointSyncTracker c where c.endpoint = :endpoint and c.syncEnd <> -1 order by c.syncEnd desc"),
     @NamedQuery(
         name = "ESIRefEndpointSyncTracker.getHistory",
-        query = "SELECT c FROM ESIRefEndpointSyncTracker c where c.endpoint = :endpoint and c.syncEnd <> -1 and c.syncStart < :start order by c.syncStart desc"),
+        query = "SELECT c FROM ESIRefEndpointSyncTracker c where c.syncEnd <> -1 and c.syncStart < :start order by c.syncStart desc"),
 })
 @ApiModel(
     description = "ESI reference endpoint synchronization tracker")
@@ -349,14 +352,12 @@ public class ESIRefEndpointSyncTracker {
    * Retrieve history of finished trackers for a given reference endpoint.  Retrieved items are ordered in
    * descending order by start time.
    *
-   * @param endpoint   the endpoint of retrieved trackers.
    * @param contid     the upper bound on tracker start time.
    * @param maxResults the maximum number of trackers to retrieve.
    * @return a list of finished trackers order in descending order by start time.
    * @throws IOException on any database error.
    */
-  public static List<ESIRefEndpointSyncTracker> getHistory(ESIRefSyncEndpoint endpoint, long contid,
-                                                           int maxResults) throws IOException {
+  public static List<ESIRefEndpointSyncTracker> getHistory(long contid, int maxResults) throws IOException {
     try {
       return EveKitRefDataProvider.getFactory()
                                   .runTransaction(() -> {
@@ -364,7 +365,6 @@ public class ESIRefEndpointSyncTracker {
                                                                                                         .getEntityManager()
                                                                                                         .createNamedQuery("ESIRefEndpointSyncTracker.getHistory",
                                                                                                                           ESIRefEndpointSyncTracker.class);
-                                    getter.setParameter("endpoint", endpoint);
                                     getter.setParameter("start", contid < 0 ? Long.MAX_VALUE : contid);
                                     getter.setMaxResults(maxResults);
                                     return getter.getResultList();
@@ -376,4 +376,26 @@ public class ESIRefEndpointSyncTracker {
     }
   }
 
+  /**
+   * Return all unfinished trackers (regardless of endpoint).
+   *
+   * @return the list of all unfinished trackers
+   * @throws IOException on any database error
+   */
+  public static List<ESIRefEndpointSyncTracker> getAllUnfinishedTrackers() throws IOException {
+    try {
+      return EveKitRefDataProvider.getFactory()
+                                  .runTransaction(() -> {
+                                    TypedQuery<ESIRefEndpointSyncTracker> getter = EveKitRefDataProvider.getFactory()
+                                                                                                        .getEntityManager()
+                                                                                                        .createNamedQuery("ESIRefEndpointSyncTracker.getAllUnfinished",
+                                                                                                                          ESIRefEndpointSyncTracker.class);
+                                    return getter.getResultList();
+                                  });
+    } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
+      log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
+    }
+  }
 }

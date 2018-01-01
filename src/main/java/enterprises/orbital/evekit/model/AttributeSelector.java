@@ -15,6 +15,7 @@ import java.util.Set;
  * <li>Otherwise, this becomes a wildcard selector.
  * </ol>
  */
+@SuppressWarnings("WeakerAccess")
 public class AttributeSelector {
   public enum SelectorType {
     WILDCARD,
@@ -82,15 +83,15 @@ public class AttributeSelector {
     return SelectorType.WILDCARD;
   }
 
-  private String getLikeValue() {
+  public String getLikeValue() {
     return like;
   }
 
-  private Set<String> getStringValues() {
+  public Set<String> getStringValues() {
     return values;
   }
 
-  private Set<Long> getLongValues() {
+  public Set<Long> getLongValues() {
     Set<Long> result = new HashSet<>();
     for (String next : values) {
       result.add(Long.parseLong(next));
@@ -98,7 +99,7 @@ public class AttributeSelector {
     return result;
   }
 
-  private Set<Integer> getIntValues() {
+  public Set<Integer> getIntValues() {
     Set<Integer> result = new HashSet<>();
     for (String next : values) {
       result.add(Integer.parseInt(next));
@@ -106,7 +107,7 @@ public class AttributeSelector {
     return result;
   }
 
-  private Set<Double> getDoubleValues() {
+  public Set<Double> getDoubleValues() {
     Set<Double> result = new HashSet<>();
     for (String next : values) {
       result.add(Double.parseDouble(next));
@@ -114,7 +115,7 @@ public class AttributeSelector {
     return result;
   }
 
-  private Set<Float> getFloatValues() {
+  public Set<Float> getFloatValues() {
     Set<Float> result = new HashSet<>();
     for (String next : values) {
       result.add(Float.parseFloat(next));
@@ -122,43 +123,43 @@ public class AttributeSelector {
     return result;
   }
 
-  private String getStringStart() {
+  public String getStringStart() {
     return start;
   }
 
-  private String getStringEnd() {
+  public String getStringEnd() {
     return end;
   }
 
-  private long getLongStart() {
+  public long getLongStart() {
     return Long.parseLong(start);
   }
 
-  private long getLongEnd() {
+  public long getLongEnd() {
     return Long.parseLong(end);
   }
 
-  private int getIntStart() {
+  public int getIntStart() {
     return Integer.parseInt(start);
   }
 
-  private int getIntEnd() {
+  public int getIntEnd() {
     return Integer.parseInt(end);
   }
 
-  private double getDoubleStart() {
+  public double getDoubleStart() {
     return Double.parseDouble(start);
   }
 
-  private double getDoubleEnd() {
+  public double getDoubleEnd() {
     return Double.parseDouble(end);
   }
 
-  private float getFloatStart() {
+  public float getFloatStart() {
     return Float.parseFloat(start);
   }
 
-  private float getFloatEnd() {
+  public float getFloatEnd() {
     return Float.parseFloat(end);
   }
 
