@@ -67,6 +67,9 @@ import io.swagger.annotations.ApiModelProperty;
         name = "ESIEndpointSyncTracker.getUnfinished",
         query = "SELECT c FROM ESIEndpointSyncTracker c where c.account = :account and c.endpoint = :endpoint and c.syncEnd = -1"),
     @NamedQuery(
+        name = "ESIEndpointSyncTracker.getAllUnfinished",
+        query = "SELECT c FROM ESIEndpointSyncTracker c where c.syncEnd = -1"),
+    @NamedQuery(
         name = "ESIEndpointSyncTracker.getLastFinished",
         query = "SELECT c FROM ESIEndpointSyncTracker c where c.account = :account and c.endpoint = :endpoint and c.syncEnd <> -1 order by c.syncEnd desc"),
     @NamedQuery(
@@ -230,6 +233,15 @@ public class ESIEndpointSyncTracker {
   }
 
   /**
+   * Check whether this tracker has been refreshed.
+   *
+   * @return true if status is not NOT_PROCESSED, false otherwise.
+   */
+  public boolean isRefreshed() {
+    return status != ESISyncState.NOT_PROCESSED;
+  }
+
+  /**
    * Mark a tracker as finished by assigning a "sync end".  Sync end time is always assigned to the current
    * local time as retrieved from OrbitalProperties.getCurrentTime.
    *
@@ -296,6 +308,26 @@ public class ESIEndpointSyncTracker {
     } catch (Exception e) {
       if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       if (e.getCause() instanceof TrackerNotFoundException) throw (TrackerNotFoundException) e.getCause();
+      log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
+    }
+  }
+
+  /**
+   * Get the list of all unfinished trackers.
+   *
+   * @return the list of all unfinished trackers
+   * @throws IOException on any database error.
+   */
+  public static List<ESIEndpointSyncTracker> getAllUnfinishedTrackers() throws IOException {
+    try {
+      return EveKitUserAccountProvider.getFactory().runTransaction(() -> {
+        TypedQuery<ESIEndpointSyncTracker> getter = EveKitUserAccountProvider.getFactory().getEntityManager().createNamedQuery("ESIEndpointSyncTracker.getAllUnfinished",
+                                                                                                                               ESIEndpointSyncTracker.class);
+        return getter.getResultList();
+      });
+    } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
       throw new IOException(e.getCause());
     }

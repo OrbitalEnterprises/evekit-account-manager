@@ -1028,9 +1028,9 @@ public class SynchronizedEveAccount {
     // Ensure the access token is valid, if not attempt to renew it
     if (getAccessTokenExpiry() - OrbitalProperties.getCurrentTime() < expiryWindow) {
       // Key within expiry window, refresh
-      String refreshToken = getRefreshToken();
-      if (refreshToken == null) throw new IOException("No valid refresh token for account: " + getAid());
-      OAuth2AccessToken newToken = EVEAuthHandler.doRefresh(eveClientID, eveSecretKey, refreshToken);
+      String rToken = getRefreshToken();
+      if (rToken == null) throw new IOException("No valid refresh token for account: " + getAid());
+      OAuth2AccessToken newToken = EVEAuthHandler.doRefresh(eveClientID, eveSecretKey, rToken);
       if (newToken == null) {
         // Invalidate refresh token
         refreshToken = null;

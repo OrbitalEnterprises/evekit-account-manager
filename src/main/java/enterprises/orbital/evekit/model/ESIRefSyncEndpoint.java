@@ -13,31 +13,25 @@ package enterprises.orbital.evekit.model;
  * data for the endpoint.
  */
 public enum ESIRefSyncEndpoint {
-  REF_SERVER_STATUS("EVE server status", null),
-  REF_ALLIANCE("EVE alliance list", null),
-  REF_SOV_MAP("EVE sovereignty map", null),
-  REF_SOV_CAMPAIGN("EVE sovereignty campaigns and participants", null),
-  REF_SOV_STRUCTURE("EVE sovereignty structures", null),
-  REF_FW_WARS("EVE faction wars", null),
-  REF_FW_STATS("EVE faction war statistical overview", null),
-  REF_FW_SYSTEMS("EVE faction war systems", null),
-  REF_FW_FACTION_LEADERBOARD("EVE faction war faction leader board", null),
-  REF_FW_CORP_LEADERBOARD("EVE faction war corporation leader board", null),
-  REF_FW_CHAR_LEADERBOARD("EVE faction war character leader board", null);
+  REF_SERVER_STATUS(null),
+  REF_ALLIANCE(null),
+  REF_SOV_MAP(null),
+  REF_SOV_CAMPAIGN(null),
+  REF_SOV_STRUCTURE(null),
+  REF_FW_WARS(null),
+  REF_FW_STATS(null),
+  REF_FW_SYSTEMS(null),
+  REF_FW_FACTION_LEADERBOARD(null),
+  REF_FW_CORP_LEADERBOARD(null),
+  REF_FW_CHAR_LEADERBOARD(null);
 
-  String description;
-  String scope;
+  ESIScope scope;
 
-  ESIRefSyncEndpoint(String description, String scope) {
-    this.description = description;
+  ESIRefSyncEndpoint(ESIScope scope) {
     this.scope = scope;
   }
 
-  public String getDescription() {
-    return description;
-  }
-
-  public String getScope() {
+  public ESIScope getScope() {
     return scope;
   }
 
