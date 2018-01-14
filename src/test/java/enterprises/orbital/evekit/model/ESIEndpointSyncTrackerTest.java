@@ -24,7 +24,7 @@ public class ESIEndpointSyncTrackerTest extends TestBase {
     super.setUp();
     userAccount = EveKitUserAccount.createNewUserAccount(true, true);
     try {
-      testAccount = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true, true);
+      testAccount = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true);
     } catch (AccountCreationException e) {
       throw new IOException(e);
     }

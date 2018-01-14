@@ -3,8 +3,10 @@ package enterprises.orbital.evekit.account;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.github.scribejava.core.model.OAuth2AccessToken;
 import enterprises.orbital.base.OrbitalProperties;
+import enterprises.orbital.base.PersistentPropertyKey;
 import enterprises.orbital.evekit.model.SyncTracker;
 import enterprises.orbital.oauth.EVEAuthHandler;
+import enterprises.orbital.oauth.UserAccount;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
@@ -50,9 +52,6 @@ import java.util.logging.Logger;
             name = "nameIndex",
             columnList = "name"),
         @Index(
-            name = "autoIndex",
-            columnList = "autoSynchronized"),
-        @Index(
             name = "deleteableIndex",
             columnList = "markedForDelete"),
     })
@@ -79,15 +78,15 @@ import java.util.logging.Logger;
         name = "SynchronizedEveAccount.findAllMarkedForDelete",
         query = "SELECT c FROM SynchronizedEveAccount c where c.markedForDelete > -1"),
     @NamedQuery(
-        name = "SynchronizedEveAccount.findAllAutoSync",
-        query = "SELECT c FROM SynchronizedEveAccount c where c.autoSynchronized = true and c.markedForDelete = -1"),
+        name = "SynchronizedEveAccount.findAll",
+        query = "SELECT c FROM SynchronizedEveAccount c where c.markedForDelete = -1"),
     @NamedQuery(
-        name = "SynchronizedEveAccount.findAllAutoSyncIncludeMarked",
-        query = "SELECT c FROM SynchronizedEveAccount c where c.autoSynchronized = true"),
+        name = "SynchronizedEveAccount.findAllIncludeMarked",
+        query = "SELECT c FROM SynchronizedEveAccount c"),
 })
 @ApiModel(
     description = "EveKit synchronized account")
-public class SynchronizedEveAccount {
+public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
   private static final Logger log = Logger.getLogger(SynchronizedEveAccount.class.getName());
 
   // Unique account ID
@@ -130,12 +129,6 @@ public class SynchronizedEveAccount {
       value = "True if this is a character account, false for a corporation account")
   @JsonProperty("characterType")
   private boolean characterType;
-
-  // True if EveKit should automatically synchronize data for this account
-  @ApiModelProperty(
-      value = "True if this account will auto-synchronize")
-  @JsonProperty("autoSynchronized")
-  private boolean autoSynchronized;
 
   // Account character and corporation information.  This information will not be set until a valid
   // credential has been added for this account.
@@ -233,13 +226,11 @@ public class SynchronizedEveAccount {
    * @param user             owner of this account (this can never be changed).
    * @param name             name of this account (may be changed later).
    * @param ischar           whether this account will a character or corporation (this can never be changed).
-   * @param autoSynchronized whether EveKit should automatically synchronized this account (may be changed later).
    */
-  public SynchronizedEveAccount(EveKitUserAccount user, String name, boolean ischar, boolean autoSynchronized) {
+  public SynchronizedEveAccount(EveKitUserAccount user, String name, boolean ischar) {
     this.userAccount = user;
     this.name = name;
     this.characterType = ischar;
-    this.autoSynchronized = autoSynchronized;
   }
 
   public EveKitUserAccount getUserAccount() {
@@ -265,15 +256,6 @@ public class SynchronizedEveAccount {
 
   public boolean isCharacterType() {
     return characterType;
-  }
-
-  public boolean isAutoSynchronized() {
-    return autoSynchronized;
-  }
-
-  public void setAutoSynchronized(
-      boolean autoSynchronized) {
-    this.autoSynchronized = autoSynchronized;
   }
 
   public long getEveCharacterID() {
@@ -383,7 +365,6 @@ public class SynchronizedEveAccount {
         ", created=" + created +
         ", name='" + name + '\'' +
         ", characterType=" + characterType +
-        ", autoSynchronized=" + autoSynchronized +
         ", eveCharacterID=" + eveCharacterID +
         ", eveCharacterName='" + eveCharacterName + '\'' +
         ", eveCorporationID=" + eveCorporationID +
@@ -423,14 +404,12 @@ public class SynchronizedEveAccount {
    * @param userAccount account owner
    * @param name        name of new account (must be unique for this owner)
    * @param isChar      true if this account will sync a character, false otherwise
-   * @param autoSync    true if this account will auto-synchronize
    * @return the new committed account
    * @throws AccountCreationException if the selected name is already in use.
    * @throws IOException              on any other error (including database errors)
    */
   public static SynchronizedEveAccount createSynchronizedEveAccount(final EveKitUserAccount userAccount,
-                                                                    final String name, final boolean isChar,
-                                                                    final boolean autoSync)
+                                                                    final String name, final boolean isChar)
       throws AccountCreationException, IOException {
     try {
       return EveKitUserAccountProvider.getFactory()
@@ -441,7 +420,7 @@ public class SynchronizedEveAccount {
                                           throw new AccountCreationException("Account with name " + String.valueOf(name) + " already exists");
                                         } catch (AccountNotFoundException e) {
                                           // Proceed with account creation
-                                          SynchronizedEveAccount result = new SynchronizedEveAccount(userAccount, name, isChar, autoSync);
+                                          SynchronizedEveAccount result = new SynchronizedEveAccount(userAccount, name, isChar);
                                           result.created = OrbitalProperties.getCurrentTime();
                                           return EveKitUserAccountProvider.getFactory()
                                                                           .getEntityManager()
@@ -631,14 +610,13 @@ public class SynchronizedEveAccount {
    * @param owner    account owner
    * @param id       account ID
    * @param name     new account name
-   * @param autoSync new auto synchronization setting
    * @return account after updates
    * @throws AccountUpdateException   if the new name conflicts with the name of another existing account for the same user
    * @throws AccountNotFoundException if the target account can not be found
    * @throws IOException              on any database error
    */
-  public static SynchronizedEveAccount updateAccount(final EveKitUserAccount owner, final long id, final String name,
-                                                     final boolean autoSync)
+  @SuppressWarnings("Duplicates")
+  public static SynchronizedEveAccount updateAccount(final EveKitUserAccount owner, final long id, final String name)
       throws AccountUpdateException, AccountNotFoundException, IOException {
     try {
       return EveKitUserAccountProvider.getFactory()
@@ -658,7 +636,6 @@ public class SynchronizedEveAccount {
                                             result.setName(name);
                                           }
                                         }
-                                        result.setAutoSynchronized(autoSync);
                                         return update(result);
                                       });
     } catch (Exception e) {
@@ -772,6 +749,7 @@ public class SynchronizedEveAccount {
    * @throws AccountNotFoundException if the target account can not be found
    * @throws IOException              on any database error
    */
+  @SuppressWarnings("Duplicates")
   public static SynchronizedEveAccount setXMLCredential(final EveKitUserAccount owner, final long id,
                                                         final int key, final String vcode,
                                                         final long characterID, final String characterName,
@@ -835,6 +813,7 @@ public class SynchronizedEveAccount {
    * @throws AccountNotFoundException if the target account can not be found
    * @throws IOException              on any database error
    */
+  @SuppressWarnings("Duplicates")
   public static SynchronizedEveAccount setESICredential(final EveKitUserAccount owner, final long id,
                                                         final String accessToken, final long accessTokenExpiry,
                                                         final String refreshToken, final String scopes,
@@ -884,20 +863,20 @@ public class SynchronizedEveAccount {
   }
 
   /**
-   * Get all accounts marked for auto synchronization.
+   * Get all accounts.
    *
    * @param includeMarkedForDelete if true, include accounts that are marked for deletion.
    * @return the list of marked accounts
    * @throws IOException on any database error
    */
-  public static List<SynchronizedEveAccount> getAllAutoSyncAccounts(
+  public static List<SynchronizedEveAccount> getAllSyncAccounts(
       final boolean includeMarkedForDelete) throws IOException {
     try {
       return EveKitUserAccountProvider.getFactory()
                                       .runTransaction(() -> {
                                         TypedQuery<SynchronizedEveAccount> getter = EveKitUserAccountProvider.getFactory()
                                                                                                              .getEntityManager()
-                                                                                                             .createNamedQuery(includeMarkedForDelete ? "SynchronizedEveAccount.findAllAutoSyncIncludeMarked" : "SynchronizedEveAccount.findAllAutoSync",
+                                                                                                             .createNamedQuery(includeMarkedForDelete ? "SynchronizedEveAccount.findAllIncludeMarked" : "SynchronizedEveAccount.findAll",
                                                                                                                                SynchronizedEveAccount.class);
                                         return getter.getResultList();
                                       });
@@ -997,6 +976,7 @@ public class SynchronizedEveAccount {
    * @return the merged account
    * @throws IOException on any database error.
    */
+  @SuppressWarnings("Duplicates")
   public static SynchronizedEveAccount update(final SynchronizedEveAccount data) throws IOException {
     try {
       return EveKitUserAccountProvider.getFactory()
@@ -1046,4 +1026,9 @@ public class SynchronizedEveAccount {
     return account.getAccessToken();
   }
 
+  @Override
+  public String getPeristentPropertyKey(String field) {
+    // Key scheme: SyncAccount.<UID>.<AID>.<field>
+    return "SyncAccount." + String.valueOf(userAccount.getID()) + "." + String.valueOf(aid) + "." + field;
+  }
 }

@@ -1,7 +1,6 @@
 package enterprises.orbital.evekit.account;
 
 import enterprises.orbital.base.OrbitalProperties;
-import enterprises.orbital.db.ConnectionFactory.RunInTransaction;
 import enterprises.orbital.evekit.TestBase;
 import enterprises.orbital.evekit.model.CapsuleerSyncTracker;
 import enterprises.orbital.evekit.model.CorporationSyncTracker;
@@ -18,23 +17,21 @@ public class SynchronizedEveAccountTest extends TestBase {
   @Test
   public void testCreateAccount() throws AccountCreationException, IOException {
     EveKitUserAccount userAccount = EveKitUserAccount.createNewUserAccount(true, true);
-    SynchronizedEveAccount out = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true, true);
+    SynchronizedEveAccount out = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true);
     Assert.assertEquals(userAccount, out.getUserAccount());
     Assert.assertEquals("testaccount", out.getName());
     Assert.assertTrue(out.isCharacterType());
-    Assert.assertTrue(out.isAutoSynchronized());
   }
 
   @Test
   public void testSetXMLCredential() throws AccountCreationException, AccountUpdateException, AccountNotFoundException, IOException {
     // NONE -> XML
     EveKitUserAccount userAccount = EveKitUserAccount.createNewUserAccount(true, true);
-    SynchronizedEveAccount out = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true, true);
+    SynchronizedEveAccount out = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true);
     out = SynchronizedEveAccount.setXMLCredential(userAccount, out.getAid(), 1234, "abcd", 5678, "charname", 8765, "corpname");
     Assert.assertEquals(userAccount, out.getUserAccount());
     Assert.assertEquals("testaccount", out.getName());
     Assert.assertTrue(out.isCharacterType());
-    Assert.assertTrue(out.isAutoSynchronized());
     Assert.assertEquals(1234, out.getEveKey());
     Assert.assertEquals("abcd", out.getEveVCode());
     Assert.assertNull(out.getAccessToken());
@@ -51,13 +48,12 @@ public class SynchronizedEveAccountTest extends TestBase {
   public void testClearXMLCredential() throws AccountCreationException, AccountUpdateException, AccountNotFoundException, IOException {
     // XML -> NONE
     EveKitUserAccount userAccount = EveKitUserAccount.createNewUserAccount(true, true);
-    SynchronizedEveAccount out = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true, true);
+    SynchronizedEveAccount out = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true);
     out = SynchronizedEveAccount.setXMLCredential(userAccount, out.getAid(), 1234, "abcd", 5678, "charname", 8765, "corpname");
     out = SynchronizedEveAccount.clearXMLCredential(userAccount, out.getAid());
     Assert.assertEquals(userAccount, out.getUserAccount());
     Assert.assertEquals("testaccount", out.getName());
     Assert.assertTrue(out.isCharacterType());
-    Assert.assertTrue(out.isAutoSynchronized());
     Assert.assertEquals(-1, out.getEveKey());
     Assert.assertNull(out.getEveVCode());
     Assert.assertNull(out.getAccessToken());
@@ -74,14 +70,13 @@ public class SynchronizedEveAccountTest extends TestBase {
   public void testClearXMLWithESICredential() throws AccountCreationException, AccountUpdateException, AccountNotFoundException, IOException {
     // BOTH -> ESI
     EveKitUserAccount userAccount = EveKitUserAccount.createNewUserAccount(true, true);
-    SynchronizedEveAccount out = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true, true);
+    SynchronizedEveAccount out = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true);
     out = SynchronizedEveAccount.setXMLCredential(userAccount, out.getAid(), 1234, "abcd", 5678, "charname", 8765, "corpname");
     out = SynchronizedEveAccount.setESICredential(userAccount, out.getAid(), "aaaa", 1111, "bbbb", "scope_list", 5678, "charname", 8765, "corpname");
     out = SynchronizedEveAccount.clearXMLCredential(userAccount, out.getAid());
     Assert.assertEquals(userAccount, out.getUserAccount());
     Assert.assertEquals("testaccount", out.getName());
     Assert.assertTrue(out.isCharacterType());
-    Assert.assertTrue(out.isAutoSynchronized());
     Assert.assertEquals(-1, out.getEveKey());
     Assert.assertNull(out.getEveVCode());
     Assert.assertEquals("aaaa", out.getAccessToken());
@@ -98,7 +93,7 @@ public class SynchronizedEveAccountTest extends TestBase {
   public void testSetConflictingXMLCredential() throws AccountCreationException, AccountUpdateException, AccountNotFoundException, IOException {
     // ESI -> BOTH bad!
     EveKitUserAccount userAccount = EveKitUserAccount.createNewUserAccount(true, true);
-    SynchronizedEveAccount out = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true, true);
+    SynchronizedEveAccount out = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true);
     out = SynchronizedEveAccount.setESICredential(userAccount, out.getAid(), "abcd", 1234, "efgh", "scope_list", 1111, "aaaa", 2222,"bbbb");
     SynchronizedEveAccount.setXMLCredential(userAccount, out.getAid(), 1234, "abcd", 5678, "charname", 8765, "corpname");
   }
@@ -107,13 +102,12 @@ public class SynchronizedEveAccountTest extends TestBase {
   public void testSetNonConflictingXMLCredential() throws AccountCreationException, AccountUpdateException, AccountNotFoundException, IOException {
     // ESI -> BOTH
     EveKitUserAccount userAccount = EveKitUserAccount.createNewUserAccount(true, true);
-    SynchronizedEveAccount out = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true, true);
+    SynchronizedEveAccount out = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true);
     out = SynchronizedEveAccount.setESICredential(userAccount, out.getAid(), "abcd", 1234, "efgh", "scope_list", 5678, "charname", 8765, "corpname");
     out = SynchronizedEveAccount.setXMLCredential(userAccount, out.getAid(), 1234, "abcd", 5678, "charname", 8765, "corpname");
     Assert.assertEquals(userAccount, out.getUserAccount());
     Assert.assertEquals("testaccount", out.getName());
     Assert.assertTrue(out.isCharacterType());
-    Assert.assertTrue(out.isAutoSynchronized());
     Assert.assertEquals(1234, out.getEveKey());
     Assert.assertEquals("abcd", out.getEveVCode());
     Assert.assertEquals("abcd", out.getAccessToken());
@@ -130,12 +124,11 @@ public class SynchronizedEveAccountTest extends TestBase {
   public void testSetESICredential() throws AccountCreationException, AccountUpdateException, AccountNotFoundException, IOException {
     // NONE -> ESI
     EveKitUserAccount userAccount = EveKitUserAccount.createNewUserAccount(true, true);
-    SynchronizedEveAccount out = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true, true);
+    SynchronizedEveAccount out = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true);
     out = SynchronizedEveAccount.setESICredential(userAccount, out.getAid(), "abcd", 1234, "efgh", "scope_list", 5678, "charname", 8765, "corpname");
     Assert.assertEquals(userAccount, out.getUserAccount());
     Assert.assertEquals("testaccount", out.getName());
     Assert.assertTrue(out.isCharacterType());
-    Assert.assertTrue(out.isAutoSynchronized());
     Assert.assertEquals("abcd", out.getAccessToken());
     Assert.assertEquals(1234, out.getAccessTokenExpiry());
     Assert.assertEquals("efgh", out.getRefreshToken());
@@ -152,13 +145,12 @@ public class SynchronizedEveAccountTest extends TestBase {
   public void testClearESICredential() throws AccountCreationException, AccountUpdateException, AccountNotFoundException, IOException {
     // ESI -> NONE
     EveKitUserAccount userAccount = EveKitUserAccount.createNewUserAccount(true, true);
-    SynchronizedEveAccount out = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true, true);
+    SynchronizedEveAccount out = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true);
     out = SynchronizedEveAccount.setESICredential(userAccount, out.getAid(), "abcd", 1234, "efgh", "scope_list", 8765, "charname", 8765, "corpname");
     out = SynchronizedEveAccount.clearESICredential(userAccount, out.getAid());
     Assert.assertEquals(userAccount, out.getUserAccount());
     Assert.assertEquals("testaccount", out.getName());
     Assert.assertTrue(out.isCharacterType());
-    Assert.assertTrue(out.isAutoSynchronized());
     Assert.assertEquals(-1, out.getEveKey());
     Assert.assertNull(out.getEveVCode());
     Assert.assertNull(out.getAccessToken());
@@ -175,14 +167,13 @@ public class SynchronizedEveAccountTest extends TestBase {
   public void testClearESIWithXMLCredential() throws AccountCreationException, AccountUpdateException, AccountNotFoundException, IOException {
     // BOTH -> XML
     EveKitUserAccount userAccount = EveKitUserAccount.createNewUserAccount(true, true);
-    SynchronizedEveAccount out = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true, true);
+    SynchronizedEveAccount out = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true);
     out = SynchronizedEveAccount.setXMLCredential(userAccount, out.getAid(), 1234, "abcd", 5678, "charname", 8765, "corpname");
     out = SynchronizedEveAccount.setESICredential(userAccount, out.getAid(), "aaaa", 1111, "bbbb", "scope_list", 5678, "charname", 8765, "corpname");
     out = SynchronizedEveAccount.clearESICredential(userAccount, out.getAid());
     Assert.assertEquals(userAccount, out.getUserAccount());
     Assert.assertEquals("testaccount", out.getName());
     Assert.assertTrue(out.isCharacterType());
-    Assert.assertTrue(out.isAutoSynchronized());
     Assert.assertEquals(1234, out.getEveKey());
     Assert.assertEquals("abcd", out.getEveVCode());
     Assert.assertNull(out.getAccessToken());
@@ -199,7 +190,7 @@ public class SynchronizedEveAccountTest extends TestBase {
   public void testSetConflictingESICredential() throws AccountCreationException, AccountUpdateException, AccountNotFoundException, IOException {
     // XML -> BOTH bad!
     EveKitUserAccount userAccount = EveKitUserAccount.createNewUserAccount(true, true);
-    SynchronizedEveAccount out = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true, true);
+    SynchronizedEveAccount out = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true);
     out = SynchronizedEveAccount.setXMLCredential(userAccount, out.getAid(), 1234, "abcd", 5678, "charname", 8765, "corpName");
     SynchronizedEveAccount.setESICredential(userAccount, out.getAid(), "aaaa", 1111, "bbbb", "scope_list", 3333, "cccc", 4444, "dddd");
   }
@@ -208,13 +199,12 @@ public class SynchronizedEveAccountTest extends TestBase {
   public void testSetNonConflictingESICredential() throws AccountCreationException, AccountUpdateException, AccountNotFoundException, IOException {
     // XML -> BOTH
     EveKitUserAccount userAccount = EveKitUserAccount.createNewUserAccount(true, true);
-    SynchronizedEveAccount out = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true, true);
+    SynchronizedEveAccount out = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true);
     out = SynchronizedEveAccount.setXMLCredential(userAccount, out.getAid(), 1234, "abcd", 5678, "charname", 8765, "corpname");
     out = SynchronizedEveAccount.setESICredential(userAccount, out.getAid(), "abcd", 1234, "efgh", "scope_list", 5678, "charname", 8765, "corpname");
     Assert.assertEquals(userAccount, out.getUserAccount());
     Assert.assertEquals("testaccount", out.getName());
     Assert.assertTrue(out.isCharacterType());
-    Assert.assertTrue(out.isAutoSynchronized());
     Assert.assertEquals(1234, out.getEveKey());
     Assert.assertEquals("abcd", out.getEveVCode());
     Assert.assertEquals("abcd", out.getAccessToken());
@@ -230,15 +220,15 @@ public class SynchronizedEveAccountTest extends TestBase {
   @Test(expected = AccountCreationException.class)
   public void testCreateAccountExists() throws AccountCreationException, IOException {
     EveKitUserAccount userAccount = EveKitUserAccount.createNewUserAccount(true, true);
-    SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true, true);
-    SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true, true);
+    SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true);
+    SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true);
   }
 
   @Test
   public void testGetExistingAccount() throws AccountCreationException, AccountNotFoundException, IOException {
     EveKitUserAccount userAccount = EveKitUserAccount.createNewUserAccount(true, true);
-    SynchronizedEveAccount existing = null, out;
-    existing = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true, true);
+    SynchronizedEveAccount existing, out;
+    existing = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true);
     String name = existing.getName();
 
     // This should retrieve the cached version
@@ -250,7 +240,7 @@ public class SynchronizedEveAccountTest extends TestBase {
   @Test(expected = AccountNotFoundException.class)
   public void testGetMissingAccountSameUser() throws AccountCreationException, AccountNotFoundException, IOException {
     EveKitUserAccount userAccount = EveKitUserAccount.createNewUserAccount(true, true);
-    SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true, true);
+    SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true);
     SynchronizedEveAccount.getSynchronizedAccount(userAccount, "12345", false);
   }
 
@@ -258,15 +248,15 @@ public class SynchronizedEveAccountTest extends TestBase {
   public void testGetMissingAccountDifferentUser() throws AccountCreationException, AccountNotFoundException, IOException {
     EveKitUserAccount userAccount = EveKitUserAccount.createNewUserAccount(true, true);
     EveKitUserAccount userAccount2 = EveKitUserAccount.createNewUserAccount(true, true);
-    SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true, true);
+    SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true);
     SynchronizedEveAccount.getSynchronizedAccount(userAccount2, "testaccount", false);
   }
 
   @Test
   public void testGetAllAccounts() throws IOException, AccountCreationException {
     EveKitUserAccount userAccount = EveKitUserAccount.createNewUserAccount(true, true);
-    SynchronizedEveAccount out1 = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount1", true, true);
-    SynchronizedEveAccount out2 = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount2", true, true);
+    SynchronizedEveAccount out1 = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount1", true);
+    SynchronizedEveAccount out2 = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount2", true);
     List<SynchronizedEveAccount> allAccounts = SynchronizedEveAccount.getAllAccounts(userAccount, false);
     Assert.assertThat(allAccounts, org.hamcrest.CoreMatchers.hasItems(out1, out2));
   }
@@ -274,7 +264,7 @@ public class SynchronizedEveAccountTest extends TestBase {
   @Test
   public void testRestoreAccount() throws IOException, AccountNotFoundException, AccountCreationException {
     EveKitUserAccount userAccount = EveKitUserAccount.createNewUserAccount(true, true);
-    long id = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount1", true, true).getAid();
+    long id = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount1", true).getAid();
     SynchronizedEveAccount.deleteAccount(userAccount, id);
     try {
       SynchronizedEveAccount.getSynchronizedAccount(userAccount, id, false);
@@ -289,7 +279,7 @@ public class SynchronizedEveAccountTest extends TestBase {
   @Test
   public void testRestoreAccountMissing() throws IOException, AccountCreationException, AccountNotFoundException {
     EveKitUserAccount userAccount = EveKitUserAccount.createNewUserAccount(true, true);
-    long id = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount1", true, true).getAid();
+    long id = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount1", true).getAid();
     try {
       SynchronizedEveAccount.restoreAccount(userAccount, 12345L);
       Assert.fail("previous call should have thrown exception");
@@ -302,7 +292,7 @@ public class SynchronizedEveAccountTest extends TestBase {
   @Test
   public void testDeleteAccount() throws IOException, AccountCreationException, AccountNotFoundException {
     EveKitUserAccount userAccount = EveKitUserAccount.createNewUserAccount(true, true);
-    long id = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount1", true, true).getAid();
+    long id = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount1", true).getAid();
     SynchronizedEveAccount.deleteAccount(userAccount, id);
     try {
     SynchronizedEveAccount.getSynchronizedAccount(userAccount, id, false);
@@ -316,7 +306,7 @@ public class SynchronizedEveAccountTest extends TestBase {
   @Test
   public void testDeleteAccountMissing() throws IOException, AccountCreationException, AccountNotFoundException {
     EveKitUserAccount userAccount = EveKitUserAccount.createNewUserAccount(true, true);
-    SynchronizedEveAccount tst = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount1", true, true);
+    SynchronizedEveAccount tst = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount1", true);
     try {
       SynchronizedEveAccount.deleteAccount(userAccount, 12345L);
       Assert.fail("previous call should have thrown exception");
@@ -329,22 +319,21 @@ public class SynchronizedEveAccountTest extends TestBase {
   @Test
   public void testUpdateAccount() throws IOException, AccountCreationException, AccountNotFoundException, AccountUpdateException {
     EveKitUserAccount userAccount = EveKitUserAccount.createNewUserAccount(true, true);
-    SynchronizedEveAccount tst = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true, true);
-    SynchronizedEveAccount.updateAccount(userAccount, tst.getAid(), "testaccount", false);
+    SynchronizedEveAccount tst = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true);
+    SynchronizedEveAccount.updateAccount(userAccount, tst.getAid(), "testaccount");
     SynchronizedEveAccount out = SynchronizedEveAccount.getSynchronizedAccount(userAccount, tst.getName(), false);
     Assert.assertEquals(userAccount, out.getUserAccount());
     Assert.assertEquals("testaccount", out.getName());
     Assert.assertEquals(tst.getName(), out.getName());
     Assert.assertTrue(out.isCharacterType());
-    Assert.assertFalse(out.isAutoSynchronized());
   }
 
   @Test
   public void testUpdateAccountMissing() throws IOException, AccountCreationException, AccountUpdateException, AccountNotFoundException {
     EveKitUserAccount userAccount = EveKitUserAccount.createNewUserAccount(true, true);
-    SynchronizedEveAccount tst = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true, true);
+    SynchronizedEveAccount tst = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true);
     try {
-      SynchronizedEveAccount.updateAccount(userAccount, 12345L, "testaccount", false);
+      SynchronizedEveAccount.updateAccount(userAccount, 12345L, "testaccount");
       Assert.fail("previous call should have thrown exception");
     } catch (AccountNotFoundException e) {
       // expected.
@@ -353,7 +342,6 @@ public class SynchronizedEveAccountTest extends TestBase {
     Assert.assertEquals(userAccount, out.getUserAccount());
     Assert.assertEquals(tst.getName(), out.getName());
     Assert.assertTrue(out.isCharacterType());
-    Assert.assertTrue(out.isAutoSynchronized());
   }
 
   @Test
@@ -362,7 +350,7 @@ public class SynchronizedEveAccountTest extends TestBase {
 
     // Setup account
     EveKitUserAccount userAccount = EveKitUserAccount.createNewUserAccount(true, true);
-    SynchronizedEveAccount testAccount = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true, true);
+    SynchronizedEveAccount testAccount = SynchronizedEveAccount.createSynchronizedEveAccount(userAccount, "testaccount", true);
 
     // Create items typically attached to a sync account: access keys and sync trackers
     int count = TestBase.getRandomInt(2000) + 2000;
