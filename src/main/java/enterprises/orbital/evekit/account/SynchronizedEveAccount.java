@@ -321,7 +321,10 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
   }
 
   public boolean hasScope(String scopeName) {
+    // False if we've never set a scope (e.g. because we lack an actual ESI key)
     if (scopes == null) return false;
+    // Don't allow scopes if we can't refresh to create a valid token
+    if (refreshToken == null) return false;
     if (scopeSet == null) {
       synchronized (this) {
         if (scopeSet == null) {
@@ -1012,7 +1015,7 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
       if (rToken == null) throw new IOException("No valid refresh token for account: " + getAid());
       OAuth2AccessToken newToken = EVEAuthHandler.doRefresh(eveClientID, eveSecretKey, rToken);
       if (newToken == null) {
-        // Invalidate refresh token
+        // Invalidate refresh token.
         refreshToken = null;
         update(this);
         throw new IOException("Failed to refresh token for credential: " + getAid());
