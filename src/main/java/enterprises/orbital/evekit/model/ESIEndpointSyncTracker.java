@@ -1,30 +1,17 @@
 package enterprises.orbital.evekit.model;
 
-import java.io.IOException;
-import java.text.DateFormat;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import javax.persistence.*;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import enterprises.orbital.base.OrbitalProperties;
-import enterprises.orbital.db.ConnectionFactory.RunInTransaction;
-import enterprises.orbital.evekit.account.AccountCreationException;
-import enterprises.orbital.evekit.account.EveKitRefDataProvider;
 import enterprises.orbital.evekit.account.EveKitUserAccountProvider;
 import enterprises.orbital.evekit.account.SynchronizedEveAccount;
-import enterprises.orbital.evekit.model.SyncTracker.SyncState;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+
+import javax.persistence.*;
+import java.io.IOException;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Object to track synchronization of an ESI endpoint (see ESISyncEndpoint) for a synchronized account.
@@ -355,7 +342,8 @@ public class ESIEndpointSyncTracker {
           tracker.account = account;
           tracker.endpoint = endpoint;
           tracker.scheduled = scheduled;
-          return EveKitUserAccountProvider.update(tracker);
+          EveKitUserAccountProvider.getFactory().getEntityManager().persist(tracker);
+          return tracker;
         }
       });
     } catch (Exception e) {
