@@ -342,8 +342,7 @@ public class ESIEndpointSyncTracker {
           tracker.account = account;
           tracker.endpoint = endpoint;
           tracker.scheduled = scheduled;
-          EveKitUserAccountProvider.getFactory().getEntityManager().persist(tracker);
-          return tracker;
+          return EveKitUserAccountProvider.update(tracker);
         }
       });
     } catch (Exception e) {
