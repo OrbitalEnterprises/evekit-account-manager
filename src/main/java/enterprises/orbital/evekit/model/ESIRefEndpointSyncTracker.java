@@ -227,7 +227,7 @@ public class ESIRefEndpointSyncTracker {
    * @throws IOException              on any database error
    * @throws TrackerNotFoundException if a tracker with the given ID could not be found
    */
-  public static ESIRefEndpointSyncTracker get(long tid) throws IOException, TrackerNotFoundException {
+  public static synchronized ESIRefEndpointSyncTracker get(long tid) throws IOException, TrackerNotFoundException {
     try {
       return EveKitRefDataProvider.getFactory()
                                   .runTransaction(() -> {
@@ -259,7 +259,7 @@ public class ESIRefEndpointSyncTracker {
    * @throws IOException              on any database error
    * @throws TrackerNotFoundException if an unfinished tracker could not be found
    */
-  public static ESIRefEndpointSyncTracker getUnfinishedTracker(
+  public static synchronized ESIRefEndpointSyncTracker getUnfinishedTracker(
       ESIRefSyncEndpoint endpoint) throws IOException, TrackerNotFoundException {
     try {
       return EveKitRefDataProvider.getFactory()
@@ -292,7 +292,7 @@ public class ESIRefEndpointSyncTracker {
    * @return an existing unfinished tracker, or a new one created with the specified schedules start time
    * @throws IOException on any database error
    */
-  public static ESIRefEndpointSyncTracker getOrCreateUnfinishedTracker(ESIRefSyncEndpoint endpoint,
+  public static synchronized ESIRefEndpointSyncTracker getOrCreateUnfinishedTracker(ESIRefSyncEndpoint endpoint,
                                                                        long scheduled) throws IOException {
     try {
       return EveKitRefDataProvider.getFactory()
@@ -323,7 +323,7 @@ public class ESIRefEndpointSyncTracker {
    * @throws IOException              on any database error.
    * @throws TrackerNotFoundException if no tracker could be found.
    */
-  public static ESIRefEndpointSyncTracker getLatestFinishedTracker(
+  public static synchronized ESIRefEndpointSyncTracker getLatestFinishedTracker(
       ESIRefSyncEndpoint endpoint) throws IOException, TrackerNotFoundException {
     try {
       return EveKitRefDataProvider.getFactory()
@@ -382,7 +382,7 @@ public class ESIRefEndpointSyncTracker {
    * @return the list of all unfinished trackers
    * @throws IOException on any database error
    */
-  public static List<ESIRefEndpointSyncTracker> getAllUnfinishedTrackers() throws IOException {
+  public static synchronized List<ESIRefEndpointSyncTracker> getAllUnfinishedTrackers() throws IOException {
     try {
       return EveKitRefDataProvider.getFactory()
                                   .runTransaction(() -> {

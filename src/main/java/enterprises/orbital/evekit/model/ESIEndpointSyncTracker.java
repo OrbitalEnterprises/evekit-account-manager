@@ -236,7 +236,7 @@ public class ESIEndpointSyncTracker {
    * @return the updated tracker
    * @throws IOException on any database error.
    */
-  public static ESIEndpointSyncTracker finishTracker(ESIEndpointSyncTracker tracker) throws IOException {
+  public static synchronized ESIEndpointSyncTracker finishTracker(ESIEndpointSyncTracker tracker) throws IOException {
     tracker.setSyncEnd(OrbitalProperties.getCurrentTime());
     return EveKitUserAccountProvider.update(tracker);
   }
@@ -249,7 +249,7 @@ public class ESIEndpointSyncTracker {
    * @throws IOException on any database error
    * @throws TrackerNotFoundException if a tracker with the given ID could not be found
    */
-  public static ESIEndpointSyncTracker get(long tid) throws IOException, TrackerNotFoundException {
+  public static synchronized ESIEndpointSyncTracker get(long tid) throws IOException, TrackerNotFoundException {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(() -> {
           TypedQuery<ESIEndpointSyncTracker> getter = EveKitUserAccountProvider.getFactory().getEntityManager().createNamedQuery("ESIEndpointSyncTracker.get",
@@ -279,7 +279,7 @@ public class ESIEndpointSyncTracker {
    * @throws IOException on any database error
    * @throws TrackerNotFoundException if an unfinished tracker could not be found
    */
-  public static ESIEndpointSyncTracker getUnfinishedTracker(SynchronizedEveAccount account, ESISyncEndpoint endpoint) throws IOException, TrackerNotFoundException {
+  public static synchronized ESIEndpointSyncTracker getUnfinishedTracker(SynchronizedEveAccount account, ESISyncEndpoint endpoint) throws IOException, TrackerNotFoundException {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(() -> {
           TypedQuery<ESIEndpointSyncTracker> getter = EveKitUserAccountProvider.getFactory().getEntityManager().createNamedQuery("ESIEndpointSyncTracker.getUnfinished",
@@ -306,7 +306,7 @@ public class ESIEndpointSyncTracker {
    * @return the list of all unfinished trackers
    * @throws IOException on any database error.
    */
-  public static List<ESIEndpointSyncTracker> getAllUnfinishedTrackers() throws IOException {
+  public static synchronized List<ESIEndpointSyncTracker> getAllUnfinishedTrackers() throws IOException {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(() -> {
         TypedQuery<ESIEndpointSyncTracker> getter = EveKitUserAccountProvider.getFactory().getEntityManager().createNamedQuery("ESIEndpointSyncTracker.getAllUnfinished",
@@ -330,7 +330,7 @@ public class ESIEndpointSyncTracker {
    * @return an existing unfinished tracker, or a new one created with the specified schedules start time
    * @throws IOException on any database error
    */
-  public static ESIEndpointSyncTracker getOrCreateUnfinishedTracker(SynchronizedEveAccount account, ESISyncEndpoint endpoint, long scheduled) throws IOException {
+  public static synchronized ESIEndpointSyncTracker getOrCreateUnfinishedTracker(SynchronizedEveAccount account, ESISyncEndpoint endpoint, long scheduled) throws IOException {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(() -> {
         try {
@@ -361,7 +361,7 @@ public class ESIEndpointSyncTracker {
    * @throws IOException on any database error.
    * @throws TrackerNotFoundException if no tracker could be found.
    */
-  public static ESIEndpointSyncTracker getLatestFinishedTracker(SynchronizedEveAccount account, ESISyncEndpoint endpoint) throws IOException, TrackerNotFoundException {
+  public static synchronized ESIEndpointSyncTracker getLatestFinishedTracker(SynchronizedEveAccount account, ESISyncEndpoint endpoint) throws IOException, TrackerNotFoundException {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(() -> {
           TypedQuery<ESIEndpointSyncTracker> getter = EveKitUserAccountProvider.getFactory().getEntityManager().createNamedQuery("ESIEndpointSyncTracker.getLastFinished",
