@@ -2,6 +2,7 @@ package enterprises.orbital.evekit.model;
 
 import com.google.gson.Gson;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -52,13 +53,10 @@ public class AttributeSelector {
    */
   public String end;
 
-  public Long atStart;
-  public Long atEnd;
-  public String atStartIQ;
-  public String atEndIQ;
-
   @SuppressWarnings("unused")
   private AttributeSelector() {}
+
+  private static final AttributeSelector ANY_TRUE = new AttributeSelector("{ any: true }");
 
   public AttributeSelector(String json) {
     Gson gson = new Gson();
@@ -523,6 +521,33 @@ public class AttributeSelector {
         // No constraint, skip
         break;
     }
+  }
+
+  ///////////////////////////////////////
+  // Convenience methods
+  ///////////////////////////////////////
+
+  public static AttributeSelector any() {
+    return ANY_TRUE;
+  }
+
+  public static AttributeSelector values(Object... vals) {
+    AttributeSelector sel = new AttributeSelector();
+    Arrays.stream(vals).forEach(x -> sel.values.add(String.valueOf(x)));
+    return sel;
+  }
+
+  public static AttributeSelector like(Object val) {
+    AttributeSelector sel = new AttributeSelector();
+    sel.like = String.valueOf(val);
+    return sel;
+  }
+
+  public static AttributeSelector range(Object start, Object end) {
+    AttributeSelector sel = new AttributeSelector();
+    sel.start = String.valueOf(start);
+    sel.end = String.valueOf(end);
+    return sel;
   }
 
 }
