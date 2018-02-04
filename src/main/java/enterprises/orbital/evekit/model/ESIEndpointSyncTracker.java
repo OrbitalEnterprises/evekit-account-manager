@@ -54,14 +54,23 @@ import java.util.logging.Logger;
         name = "ESIEndpointSyncTracker.getUnfinished",
         query = "SELECT c FROM ESIEndpointSyncTracker c where c.account = :account and c.endpoint = :endpoint and c.syncEnd = -1"),
     @NamedQuery(
+        name = "ESIEndpointSyncTracker.getAllStartedUnfinished",
+        query = "SELECT c FROM ESIEndpointSyncTracker c where c.syncStart <> -1 and c.syncEnd = -1"),
+    @NamedQuery(
         name = "ESIEndpointSyncTracker.getAllUnfinished",
         query = "SELECT c FROM ESIEndpointSyncTracker c where c.syncEnd = -1"),
     @NamedQuery(
         name = "ESIEndpointSyncTracker.getLastFinished",
         query = "SELECT c FROM ESIEndpointSyncTracker c where c.account = :account and c.endpoint = :endpoint and c.syncEnd <> -1 order by c.syncEnd desc"),
     @NamedQuery(
+        name = "ESIEndpointSyncTracker.getAnyLastFinished",
+        query = "SELECT c FROM ESIEndpointSyncTracker c where c.account = :account and c.syncEnd <> -1 order by c.syncEnd desc"),
+    @NamedQuery(
         name = "ESIEndpointSyncTracker.getHistory",
         query = "SELECT c FROM ESIEndpointSyncTracker c where c.account = :account and c.endpoint = :endpoint and c.syncEnd <> -1 and c.syncStart < :start order by c.syncStart desc"),
+    @NamedQuery(
+        name = "ESIEndpointSyncTracker.getAllHistory",
+        query = "SELECT c FROM ESIEndpointSyncTracker c where c.account = :account and c.syncEnd <> -1 and c.syncStart < :start order by c.syncStart desc"),
 })
 @ApiModel(
     description = "ESI endpoint synchronization tracker")
@@ -321,6 +330,26 @@ public class ESIEndpointSyncTracker {
   }
 
   /**
+   * Get the list of all started but unfinished trackers.
+   *
+   * @return the list of all started but unfinished trackers
+   * @throws IOException on any database error.
+   */
+  public static synchronized List<ESIEndpointSyncTracker> getAllStartedUnfinishedTrackers() throws IOException {
+    try {
+      return EveKitUserAccountProvider.getFactory().runTransaction(() -> {
+        TypedQuery<ESIEndpointSyncTracker> getter = EveKitUserAccountProvider.getFactory().getEntityManager().createNamedQuery("ESIEndpointSyncTracker.getAllStartedUnfinished",
+                                                                                                                               ESIEndpointSyncTracker.class);
+        return getter.getResultList();
+      });
+    } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
+      log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
+    }
+  }
+
+  /**
    * Get the unfinished tracker for the given account and endpoint.  If no such tracker exists, then create one
    * and assign a scheduled start time.
    *
@@ -384,6 +413,33 @@ public class ESIEndpointSyncTracker {
   }
 
   /**
+   * Retrieve the last finished tracker (ordered by end time) for the given account, if one exists.
+   *
+   * @param account the owner of the last finished tracker.
+   * @return the last finished tracker if one exists.
+   * @throws IOException on any database error.
+   * @throws TrackerNotFoundException if no tracker could be found.
+   */
+  public static synchronized ESIEndpointSyncTracker getAnyLatestFinishedTracker(SynchronizedEveAccount account) throws IOException, TrackerNotFoundException {
+    try {
+      return EveKitUserAccountProvider.getFactory().runTransaction(() -> {
+        TypedQuery<ESIEndpointSyncTracker> getter = EveKitUserAccountProvider.getFactory().getEntityManager().createNamedQuery("ESIEndpointSyncTracker.getAnyLastFinished",
+                                                                                                                               ESIEndpointSyncTracker.class);
+        getter.setParameter("account", account);
+        getter.setMaxResults(1);
+        List<ESIEndpointSyncTracker> results = getter.getResultList();
+        if (results.isEmpty()) throw new TrackerNotFoundException();
+        return results.get(0);
+      });
+    } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
+      if (e.getCause() instanceof TrackerNotFoundException) throw (TrackerNotFoundException) e.getCause();
+      log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
+    }
+  }
+
+  /**
    * Retrieve history of finished trackers for a given account and endpoint.  Retrieved items are ordered in
    * descending order by start time.
    *
@@ -405,6 +461,33 @@ public class ESIEndpointSyncTracker {
           getter.setMaxResults(maxResults);
           return getter.getResultList();
         });
+    } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
+      log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
+    }
+  }
+
+  /**
+   * Retrieve ordered history of finished trackers for a given account and all endpoints.  Retrieved items are ordered in
+   * descending order by start time.
+   *
+   * @param account the owner of retrieved trackers.
+   * @param contid the upper bound on tracker start time.
+   * @param maxResults the maximum number of trackers to retrieve.
+   * @return a list of finished trackers order in descending order by start time.
+   * @throws IOException on any database error.
+   */
+  public static List<ESIEndpointSyncTracker> getAllHistory(SynchronizedEveAccount account, long contid, int maxResults) throws IOException {
+    try {
+      return EveKitUserAccountProvider.getFactory().runTransaction(() -> {
+        TypedQuery<ESIEndpointSyncTracker> getter = EveKitUserAccountProvider.getFactory().getEntityManager().createNamedQuery("ESIEndpointSyncTracker.getAllHistory",
+                                                                                                                               ESIEndpointSyncTracker.class);
+        getter.setParameter("account", account);
+        getter.setParameter("start", contid < 0 ? Long.MAX_VALUE : contid);
+        getter.setMaxResults(maxResults);
+        return getter.getResultList();
+      });
     } catch (Exception e) {
       if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);

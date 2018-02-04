@@ -55,6 +55,9 @@ import java.util.logging.Logger;
         name = "ESIRefEndpointSyncTracker.getAllUnfinished",
         query = "SELECT c FROM ESIRefEndpointSyncTracker c where c.syncEnd = -1"),
     @NamedQuery(
+        name = "ESIRefEndpointSyncTracker.getAllStartedUnfinished",
+        query = "SELECT c FROM ESIRefEndpointSyncTracker c where c.syncStart <> -1 and c.syncEnd = -1"),
+    @NamedQuery(
         name = "ESIRefEndpointSyncTracker.getLastFinished",
         query = "SELECT c FROM ESIRefEndpointSyncTracker c where c.endpoint = :endpoint and c.syncEnd <> -1 order by c.syncEnd desc"),
     @NamedQuery(
@@ -382,6 +385,7 @@ public class ESIRefEndpointSyncTracker {
    * @return the list of all unfinished trackers
    * @throws IOException on any database error
    */
+  @SuppressWarnings("Duplicates")
   public static synchronized List<ESIRefEndpointSyncTracker> getAllUnfinishedTrackers() throws IOException {
     try {
       return EveKitRefDataProvider.getFactory()
@@ -398,4 +402,29 @@ public class ESIRefEndpointSyncTracker {
       throw new IOException(e.getCause());
     }
   }
+
+  /**
+   * Return all started but unfinished trackers (regardless of endpoint).
+   *
+   * @return the list of all started but unfinished trackers
+   * @throws IOException on any database error
+   */
+  public static synchronized List<ESIRefEndpointSyncTracker> getAllStartedUnfinishedTrackers() throws IOException {
+    try {
+      return EveKitRefDataProvider.getFactory()
+                                  .runTransaction(() -> {
+                                    TypedQuery<ESIRefEndpointSyncTracker> getter = EveKitRefDataProvider.getFactory()
+                                                                                                        .getEntityManager()
+                                                                                                        .createNamedQuery("ESIRefEndpointSyncTracker.getAllStartedUnfinished",
+                                                                                                                          ESIRefEndpointSyncTracker.class);
+                                    return getter.getResultList();
+                                  });
+    } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
+      log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
+    }
+  }
+
+
 }
