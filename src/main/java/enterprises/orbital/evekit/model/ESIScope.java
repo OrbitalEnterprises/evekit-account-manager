@@ -25,7 +25,7 @@ public enum ESIScope {
   CHAR_READ_IMPLANTS("esi-clones.read_implants.v1", "Access to active character implant list."),
   CHAR_READ_CONTACTS("esi-characters.read_contacts.v1", "Access to character contact list and labels."),
   CORP_READ_CONTACTS("esi-corporations.read_contacts.v1", "Access to corporation contact list."),
-  CORP_READ_ALLIANCE_CONTACTS("esi-alliances.read_contacts.v1", "Access to alliance contact list."),
+  CHAR_READ_ALLIANCE_CONTACTS("esi-alliances.read_contacts.v1", "Access to alliance contact list."),
   CHAR_READ_CONTRACTS("esi-contracts.read_character_contracts.v1", "Access to character contracts, items and bids."),
   CORP_READ_CONTRACTS("esi-contracts.read_corporation_contracts.v1", "Access to corporation contracts, items and bids."),
   CORP_READ_BLUEPRINTS("esi-corporations.read_blueprints.v1", "Access to corporation blueprint list."),
