@@ -1005,7 +1005,7 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
    * @return an access token valid for at least "expiryWindow" milliseconds.
    * @throws IOException if the access token could not be refreshed, or a database error occurred.
    */
-  public String refreshToken(long expiryWindow, String eveClientID, String eveSecretKey)
+  public synchronized String refreshToken(long expiryWindow, String eveClientID, String eveSecretKey)
       throws IOException {
     SynchronizedEveAccount account = this;
     // Ensure the access token is valid, if not attempt to renew it
