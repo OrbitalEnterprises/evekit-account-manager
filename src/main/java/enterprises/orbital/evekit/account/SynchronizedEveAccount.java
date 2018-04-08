@@ -6,7 +6,6 @@ import enterprises.orbital.base.OrbitalProperties;
 import enterprises.orbital.base.PersistentPropertyKey;
 import enterprises.orbital.evekit.model.SyncTracker;
 import enterprises.orbital.oauth.EVEAuthHandler;
-import enterprises.orbital.oauth.UserAccount;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
@@ -88,6 +87,9 @@ import java.util.logging.Logger;
     description = "EveKit synchronized account")
 public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
   private static final Logger log = Logger.getLogger(SynchronizedEveAccount.class.getName());
+
+  // Not configurable for now.
+  private static final int TOKEN_LOCK_RETRY_ATTEMPTS = 3;
 
   // Unique account ID
   @Id
@@ -223,9 +225,9 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
   /**
    * Create a new account.
    *
-   * @param user             owner of this account (this can never be changed).
-   * @param name             name of this account (may be changed later).
-   * @param ischar           whether this account will a character or corporation (this can never be changed).
+   * @param user   owner of this account (this can never be changed).
+   * @param name   name of this account (may be changed later).
+   * @param ischar whether this account will a character or corporation (this can never be changed).
    */
   public SynchronizedEveAccount(EveKitUserAccount user, String name, boolean ischar) {
     this.userAccount = user;
@@ -420,10 +422,12 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
                                         try {
                                           getSynchronizedAccount(userAccount, name, true);
                                           // If we get here then account already exists, throw exception
-                                          throw new AccountCreationException("Account with name " + String.valueOf(name) + " already exists");
+                                          throw new AccountCreationException(
+                                              "Account with name " + String.valueOf(name) + " already exists");
                                         } catch (AccountNotFoundException e) {
                                           // Proceed with account creation
-                                          SynchronizedEveAccount result = new SynchronizedEveAccount(userAccount, name, isChar);
+                                          SynchronizedEveAccount result = new SynchronizedEveAccount(userAccount, name,
+                                                                                                     isChar);
                                           result.created = OrbitalProperties.getCurrentTime();
                                           return EveKitUserAccountProvider.getFactory()
                                                                           .getEntityManager()
@@ -457,8 +461,9 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
                                       .runTransaction(() -> {
                                         TypedQuery<SynchronizedEveAccount> getter = EveKitUserAccountProvider.getFactory()
                                                                                                              .getEntityManager()
-                                                                                                             .createNamedQuery(includeMarkedForDelete ? "SynchronizedEveAccount.findByAcctAndNameIncludeMarked" : "SynchronizedEveAccount.findByAcctAndName",
-                                                                                                                               SynchronizedEveAccount.class);
+                                                                                                             .createNamedQuery(
+                                                                                                                 includeMarkedForDelete ? "SynchronizedEveAccount.findByAcctAndNameIncludeMarked" : "SynchronizedEveAccount.findByAcctAndName",
+                                                                                                                 SynchronizedEveAccount.class);
                                         getter.setParameter("account", owner);
                                         getter.setParameter("name", name);
                                         try {
@@ -494,8 +499,9 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
                                       .runTransaction(() -> {
                                         TypedQuery<SynchronizedEveAccount> getter = EveKitUserAccountProvider.getFactory()
                                                                                                              .getEntityManager()
-                                                                                                             .createNamedQuery(includeMarkedForDelete ? "SynchronizedEveAccount.findByAcctAndIdIncludeMarked" : "SynchronizedEveAccount.findByAcctAndId",
-                                                                                                                               SynchronizedEveAccount.class);
+                                                                                                             .createNamedQuery(
+                                                                                                                 includeMarkedForDelete ? "SynchronizedEveAccount.findByAcctAndIdIncludeMarked" : "SynchronizedEveAccount.findByAcctAndId",
+                                                                                                                 SynchronizedEveAccount.class);
                                         getter.setParameter("account", owner);
                                         getter.setParameter("aid", id);
                                         try {
@@ -528,8 +534,9 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
                                       .runTransaction(() -> {
                                         TypedQuery<SynchronizedEveAccount> getter = EveKitUserAccountProvider.getFactory()
                                                                                                              .getEntityManager()
-                                                                                                             .createNamedQuery(includeMarkedForDelete ? "SynchronizedEveAccount.findByAcctIncludeMarked" : "SynchronizedEveAccount.findByAcct",
-                                                                                                                               SynchronizedEveAccount.class);
+                                                                                                             .createNamedQuery(
+                                                                                                                 includeMarkedForDelete ? "SynchronizedEveAccount.findByAcctIncludeMarked" : "SynchronizedEveAccount.findByAcct",
+                                                                                                                 SynchronizedEveAccount.class);
                                         getter.setParameter("account", owner);
                                         return getter.getResultList();
                                       });
@@ -557,7 +564,9 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
                                       .runTransaction(() -> {
                                         SynchronizedEveAccount acct = getSynchronizedAccount(owner, id, false);
                                         if (acct == null)
-                                          throw new AccountNotFoundException("Account not found for deletion: owner=" + String.valueOf(owner) + " id=" + id);
+                                          throw new AccountNotFoundException(
+                                              "Account not found for deletion: owner=" + String.valueOf(
+                                                  owner) + " id=" + id);
                                         // If already marked for delete, don't remark
                                         if (acct.getMarkedForDelete() > 0)
                                           return acct;
@@ -592,7 +601,9 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
                                       .runTransaction(() -> {
                                         SynchronizedEveAccount acct = getSynchronizedAccount(owner, id, true);
                                         if (acct == null)
-                                          throw new AccountNotFoundException("Account not found for restoring: owner=" + String.valueOf(owner) + " id=" + id);
+                                          throw new AccountNotFoundException(
+                                              "Account not found for restoring: owner=" + String.valueOf(
+                                                  owner) + " id=" + id);
                                         acct.setMarkedForDelete(-1);
                                         return EveKitUserAccountProvider.getFactory()
                                                                         .getEntityManager()
@@ -610,9 +621,9 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
   /**
    * Update existing account information.
    *
-   * @param owner    account owner
-   * @param id       account ID
-   * @param name     new account name
+   * @param owner account owner
+   * @param id    account ID
+   * @param name  new account name
    * @return account after updates
    * @throws AccountUpdateException   if the new name conflicts with the name of another existing account for the same user
    * @throws AccountNotFoundException if the target account can not be found
@@ -627,13 +638,16 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
                                         // No change if account with requested name does not exist
                                         SynchronizedEveAccount result = getSynchronizedAccount(owner, id, false);
                                         if (result == null)
-                                          throw new AccountNotFoundException("No account owned by " + String.valueOf(owner) + " with id: " + id);
+                                          throw new AccountNotFoundException(
+                                              "No account owned by " + String.valueOf(owner) + " with id: " + id);
                                         if (!name.equals(result.getName())) {
                                           // If account name is changing, then verify account with new name does not already exist
                                           try {
                                             getSynchronizedAccount(owner, name, true);
                                             // If no exception is thrown then this name exists so we can't use it
-                                            throw new AccountUpdateException("Account with target name \"" + String.valueOf(name) + "\" already exists");
+                                            throw new AccountUpdateException(
+                                                "Account with target name \"" + String.valueOf(
+                                                    name) + "\" already exists");
                                           } catch (AccountNotFoundException e) {
                                             // Name not in use, proceed
                                             result.setName(name);
@@ -673,7 +687,8 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
                                         // No change if account with requested name does not exist
                                         SynchronizedEveAccount result = getSynchronizedAccount(owner, id, false);
                                         if (result == null)
-                                          throw new AccountNotFoundException("No account owned by " + String.valueOf(owner) + " with id: " + id);
+                                          throw new AccountNotFoundException(
+                                              "No account owned by " + String.valueOf(owner) + " with id: " + id);
                                         result.eveKey = -1;
                                         result.eveVCode = null;
                                         if (!result.hasESIKey()) {
@@ -714,7 +729,8 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
                                         // No change if account with requested name does not exist
                                         SynchronizedEveAccount result = getSynchronizedAccount(owner, id, false);
                                         if (result == null)
-                                          throw new AccountNotFoundException("No account owned by " + String.valueOf(owner) + " with id: " + id);
+                                          throw new AccountNotFoundException(
+                                              "No account owned by " + String.valueOf(owner) + " with id: " + id);
                                         result.accessToken = null;
                                         result.accessTokenExpiry = -1;
                                         result.refreshToken = null;
@@ -768,7 +784,8 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
                                         // No change if account with requested name does not exist
                                         SynchronizedEveAccount result = getSynchronizedAccount(owner, id, false);
                                         if (result == null)
-                                          throw new AccountNotFoundException("No account owned by " + String.valueOf(owner) + " with id: " + id);
+                                          throw new AccountNotFoundException(
+                                              "No account owned by " + String.valueOf(owner) + " with id: " + id);
                                         if (result.hasESIKey() || result.hasXMLKey()) {
                                           // Verify character and corporation does not conflict with existing credential.
                                           // Note that if an XML credential already exists, we'll allow the update as long
@@ -777,7 +794,8 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
                                               !characterName.equals(result.eveCharacterName) ||
                                               corporationID != result.eveCorporationID ||
                                               !corporationName.equals(result.eveCorporationName))
-                                            throw new AccountUpdateException("New char/corp information inconsistent with existing ESI credential");
+                                            throw new AccountUpdateException(
+                                                "New char/corp information inconsistent with existing ESI credential");
                                         }
                                         result.eveKey = key;
                                         result.eveVCode = vcode;
@@ -835,14 +853,16 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
                                         // as the character and corporation are identical.
                                         SynchronizedEveAccount result = getSynchronizedAccount(owner, id, false);
                                         if (result == null)
-                                          throw new AccountNotFoundException("No account owned by " + String.valueOf(owner) + " with id: " + id);
+                                          throw new AccountNotFoundException(
+                                              "No account owned by " + String.valueOf(owner) + " with id: " + id);
                                         if (result.hasXMLKey() || result.hasESIKey()) {
                                           // Verify character and corporation does not conflict
                                           if (characterID != result.eveCharacterID ||
                                               !characterName.equals(result.eveCharacterName) ||
                                               corporationID != result.eveCorporationID ||
                                               !corporationName.equals(result.eveCorporationName))
-                                            throw new AccountUpdateException("New char/corp information inconsistent with existing XML credential");
+                                            throw new AccountUpdateException(
+                                                "New char/corp information inconsistent with existing XML credential");
                                         }
                                         result.accessToken = accessToken;
                                         result.accessTokenExpiry = accessTokenExpiry;
@@ -879,8 +899,9 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
                                       .runTransaction(() -> {
                                         TypedQuery<SynchronizedEveAccount> getter = EveKitUserAccountProvider.getFactory()
                                                                                                              .getEntityManager()
-                                                                                                             .createNamedQuery(includeMarkedForDelete ? "SynchronizedEveAccount.findAllIncludeMarked" : "SynchronizedEveAccount.findAll",
-                                                                                                                               SynchronizedEveAccount.class);
+                                                                                                             .createNamedQuery(
+                                                                                                                 includeMarkedForDelete ? "SynchronizedEveAccount.findAllIncludeMarked" : "SynchronizedEveAccount.findAll",
+                                                                                                                 SynchronizedEveAccount.class);
                                         return getter.getResultList();
                                       });
     } catch (Exception e) {
@@ -902,7 +923,9 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
                                       .runTransaction(() -> {
                                         TypedQuery<SynchronizedEveAccount> getter = EveKitUserAccountProvider.getFactory()
                                                                                                              .getEntityManager()
-                                                                                                             .createNamedQuery("SynchronizedEveAccount.findAllMarkedForDelete", SynchronizedEveAccount.class);
+                                                                                                             .createNamedQuery(
+                                                                                                                 "SynchronizedEveAccount.findAllMarkedForDelete",
+                                                                                                                 SynchronizedEveAccount.class);
                                         return getter.getResultList();
                                       });
     } catch (Exception e) {
@@ -930,7 +953,9 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
                                                  long removed = 0;
                                                  TypedQuery<SyncTracker> query = EveKitUserAccountProvider.getFactory()
                                                                                                           .getEntityManager()
-                                                                                                          .createQuery("SELECT c FROM SyncTracker c where c.account = :account", SyncTracker.class);
+                                                                                                          .createQuery(
+                                                                                                              "SELECT c FROM SyncTracker c where c.account = :account",
+                                                                                                              SyncTracker.class);
                                                  query.setParameter("account", toRemove);
                                                  query.setMaxResults(1000);
                                                  for (SyncTracker next : query.getResultList()) {
@@ -947,7 +972,9 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
                                .runTransaction(() -> {
                                  TypedQuery<SynchronizedAccountAccessKey> query = EveKitUserAccountProvider.getFactory()
                                                                                                            .getEntityManager()
-                                                                                                           .createQuery("SELECT c FROM SynchronizedAccountAccessKey c where c.account = :account", SynchronizedAccountAccessKey.class);
+                                                                                                           .createQuery(
+                                                                                                               "SELECT c FROM SynchronizedAccountAccessKey c where c.account = :account",
+                                                                                                               SynchronizedAccountAccessKey.class);
                                  query.setParameter("account", toRemove);
                                  for (SynchronizedAccountAccessKey next : query.getResultList()) {
                                    EveKitUserAccountProvider.getFactory()
@@ -961,7 +988,8 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
                                  // Refetch the account so we remove an attached instance
                                  EveKitUserAccountProvider.getFactory()
                                                           .getEntityManager()
-                                                          .remove(SynchronizedEveAccount.getSynchronizedAccount(toRemove.getUserAccount(), toRemove.getAid(), true));
+                                                          .remove(SynchronizedEveAccount.getSynchronizedAccount(
+                                                              toRemove.getUserAccount(), toRemove.getAid(), true));
                                });
 
     } catch (Exception e) {
@@ -994,6 +1022,15 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
     }
   }
 
+  private boolean hasLockAcquisitionException(Throwable t) {
+    while (t != null) {
+      if (t instanceof org.hibernate.exception.LockAcquisitionException)
+        return true;
+      t = t.getCause();
+    }
+    return false;
+  }
+
   /**
    * Refresh the access token for this account.
    *
@@ -1005,6 +1042,7 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
    * @return an access token valid for at least "expiryWindow" milliseconds.
    * @throws IOException if the access token could not be refreshed, or a database error occurred.
    */
+  @SuppressWarnings("UnnecessaryLocalVariable")
   public synchronized String refreshToken(long expiryWindow, String eveClientID, String eveSecretKey)
       throws IOException {
     SynchronizedEveAccount account = this;
@@ -1024,7 +1062,19 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
       accessTokenExpiry = OrbitalProperties.getCurrentTime() +
           TimeUnit.MILLISECONDS.convert(newToken.getExpiresIn(), TimeUnit.SECONDS);
       refreshToken = newToken.getRefreshToken();
-      account = update(account);
+      int retries = TOKEN_LOCK_RETRY_ATTEMPTS;
+      while (retries > 0) {
+        try {
+          retries--;
+          SynchronizedEveAccount updated = update(account);
+          account = updated;
+          break;
+        } catch (IOException x) {
+          if (retries == 0 || !hasLockAcquisitionException(x))
+            throw x;
+          log.log(Level.WARNING, "retrying lock timeout on refresh token for account: " + this);
+        }
+      }
     }
     return account.getAccessToken();
   }
