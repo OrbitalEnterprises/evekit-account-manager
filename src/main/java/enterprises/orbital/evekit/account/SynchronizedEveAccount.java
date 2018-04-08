@@ -1017,7 +1017,6 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
                                                                                    .merge(data));
     } catch (Exception e) {
       if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
-      log.log(Level.SEVERE, "query error", e);
       throw new IOException(e.getCause());
     }
   }
@@ -1062,6 +1061,9 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
       accessTokenExpiry = OrbitalProperties.getCurrentTime() +
           TimeUnit.MILLISECONDS.convert(newToken.getExpiresIn(), TimeUnit.SECONDS);
       refreshToken = newToken.getRefreshToken();
+
+      // Update new refresh token.  Use retries as this lock is occasionally heavily
+      // contested.
       int retries = TOKEN_LOCK_RETRY_ATTEMPTS;
       while (retries > 0) {
         try {
@@ -1070,8 +1072,10 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
           account = updated;
           break;
         } catch (IOException x) {
-          if (retries == 0 || !hasLockAcquisitionException(x))
+          if (retries == 0 || !hasLockAcquisitionException(x)) {
+            log.log(Level.SEVERE, "failed to update refresh token with retries", x);
             throw x;
+          }
           log.log(Level.WARNING, "retrying lock timeout on refresh token for account: " + this);
         }
       }
