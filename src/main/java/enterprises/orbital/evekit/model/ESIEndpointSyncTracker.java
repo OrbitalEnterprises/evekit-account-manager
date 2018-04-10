@@ -1,5 +1,6 @@
 package enterprises.orbital.evekit.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import enterprises.orbital.base.OrbitalProperties;
 import enterprises.orbital.evekit.account.EveKitUserAccountProvider;
@@ -28,6 +29,7 @@ import java.util.logging.Logger;
  *   <li>The end time of this synchronization</li>
  *   <li>The status of the synchronization (an enum)</li>
  *   <li>A detail message related to the status of this synchronization.</li>
+ *   <li>Optional context which is used by some synchronization code</li>
  * </ul>
  *
  */
@@ -137,6 +139,10 @@ public class ESIEndpointSyncTracker {
   @JsonProperty("detail")
   private String  detail;
 
+  // Opaque context used by some synchronization code
+  @JsonIgnore
+  private String context;
+
   public ESIEndpointSyncTracker() {
   }
 
@@ -188,6 +194,14 @@ public class ESIEndpointSyncTracker {
     return detail;
   }
 
+  public String getContext() {
+    return context;
+  }
+
+  public void setContext(String context) {
+    this.context = context;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -225,6 +239,7 @@ public class ESIEndpointSyncTracker {
         ", syncEnd=" + syncEnd +
         ", status=" + status +
         ", detail='" + detail + '\'' +
+        ", context='" + context + '\'' +
         '}';
   }
 
@@ -356,10 +371,11 @@ public class ESIEndpointSyncTracker {
    * @param account the owner of the unfinished tracker
    * @param endpoint the endpoint of the unfinished tracker
    * @param scheduled the scheduled start time if we need to create a new tracker
+   * @param context optional context for this sync event
    * @return an existing unfinished tracker, or a new one created with the specified schedules start time
    * @throws IOException on any database error
    */
-  public static synchronized ESIEndpointSyncTracker getOrCreateUnfinishedTracker(SynchronizedEveAccount account, ESISyncEndpoint endpoint, long scheduled) throws IOException {
+  public static synchronized ESIEndpointSyncTracker getOrCreateUnfinishedTracker(SynchronizedEveAccount account, ESISyncEndpoint endpoint, long scheduled, String context) throws IOException {
     try {
       return EveKitUserAccountProvider.getFactory().runTransaction(() -> {
         try {
@@ -371,6 +387,7 @@ public class ESIEndpointSyncTracker {
           tracker.account = account;
           tracker.endpoint = endpoint;
           tracker.scheduled = scheduled;
+          tracker.context = context;
           return EveKitUserAccountProvider.update(tracker);
         }
       });

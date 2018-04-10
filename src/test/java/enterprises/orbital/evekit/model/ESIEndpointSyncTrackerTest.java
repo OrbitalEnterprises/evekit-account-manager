@@ -73,7 +73,7 @@ public class ESIEndpointSyncTrackerTest extends TestBase {
                                         });
 
     // Get the tracker and check.
-    result = ESIEndpointSyncTracker.getOrCreateUnfinishedTracker(testAccount, ESISyncEndpoint.CHAR_BLUEPRINTS, 1234L);
+    result = ESIEndpointSyncTracker.getOrCreateUnfinishedTracker(testAccount, ESISyncEndpoint.CHAR_BLUEPRINTS, 1234L, null);
     Assert.assertNotSame(existing, result);
     Assert.assertEquals(testAccount, result.getAccount());
     Assert.assertEquals(ESISyncEndpoint.CHAR_BLUEPRINTS, result.getEndpoint());
@@ -97,7 +97,7 @@ public class ESIEndpointSyncTrackerTest extends TestBase {
                                         });
 
     // Get the tracker and check.
-    result = ESIEndpointSyncTracker.getOrCreateUnfinishedTracker(testAccount, ESISyncEndpoint.CHAR_BLUEPRINTS, 1234L);
+    result = ESIEndpointSyncTracker.getOrCreateUnfinishedTracker(testAccount, ESISyncEndpoint.CHAR_BLUEPRINTS, 1234L, null);
     Assert.assertEquals(existing, result);
   }
 
