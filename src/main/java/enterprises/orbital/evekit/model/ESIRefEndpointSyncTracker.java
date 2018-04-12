@@ -1,5 +1,6 @@
 package enterprises.orbital.evekit.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import enterprises.orbital.base.OrbitalProperties;
 import enterprises.orbital.evekit.account.EveKitRefDataProvider;
@@ -121,6 +122,10 @@ public class ESIRefEndpointSyncTracker {
   @JsonProperty("detail")
   private String detail;
 
+  // Opaque context used by some synchronization code
+  @JsonIgnore
+  private String context;
+
   public ESIRefEndpointSyncTracker() {
   }
 
@@ -168,6 +173,14 @@ public class ESIRefEndpointSyncTracker {
     return detail;
   }
 
+  public String getContext() {
+    return context;
+  }
+
+  public void setContext(String context) {
+    this.context = context;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -197,6 +210,7 @@ public class ESIRefEndpointSyncTracker {
         ", syncEnd=" + syncEnd +
         ", status=" + status +
         ", detail='" + detail + '\'' +
+        ", context='" + context + '\'' +
         '}';
   }
 
@@ -296,7 +310,7 @@ public class ESIRefEndpointSyncTracker {
    * @throws IOException on any database error
    */
   public static synchronized ESIRefEndpointSyncTracker getOrCreateUnfinishedTracker(ESIRefSyncEndpoint endpoint,
-                                                                       long scheduled) throws IOException {
+                                                                       long scheduled, String context) throws IOException {
     try {
       return EveKitRefDataProvider.getFactory()
                                   .runTransaction(() -> {
@@ -308,6 +322,7 @@ public class ESIRefEndpointSyncTracker {
                                       ESIRefEndpointSyncTracker tracker = new ESIRefEndpointSyncTracker();
                                       tracker.endpoint = endpoint;
                                       tracker.scheduled = scheduled;
+                                      tracker.context = context;
                                       return EveKitRefDataProvider.update(tracker);
                                     }
                                   });

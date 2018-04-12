@@ -62,7 +62,7 @@ public class ESIRefEndpointSyncTrackerTest extends TestBase {
                                         });
 
     // Get the tracker and check.
-    result = ESIRefEndpointSyncTracker.getOrCreateUnfinishedTracker(ESIRefSyncEndpoint.REF_SERVER_STATUS, 1234L);
+    result = ESIRefEndpointSyncTracker.getOrCreateUnfinishedTracker(ESIRefSyncEndpoint.REF_SERVER_STATUS, 1234L, null);
     Assert.assertNotSame(existing, result);
     Assert.assertEquals(ESIRefSyncEndpoint.REF_SERVER_STATUS, result.getEndpoint());
     Assert.assertEquals(1234L, result.getScheduled());
@@ -85,7 +85,7 @@ public class ESIRefEndpointSyncTrackerTest extends TestBase {
                                         });
 
     // Get the tracker and check.
-    result = ESIRefEndpointSyncTracker.getOrCreateUnfinishedTracker(ESIRefSyncEndpoint.REF_SERVER_STATUS, 1234L);
+    result = ESIRefEndpointSyncTracker.getOrCreateUnfinishedTracker(ESIRefSyncEndpoint.REF_SERVER_STATUS, 1234L, null);
     Assert.assertEquals(existing, result);
   }
 
