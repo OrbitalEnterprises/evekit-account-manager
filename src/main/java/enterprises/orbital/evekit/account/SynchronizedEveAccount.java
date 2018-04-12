@@ -1042,45 +1042,48 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
    * @throws IOException if the access token could not be refreshed, or a database error occurred.
    */
   @SuppressWarnings("UnnecessaryLocalVariable")
-  public synchronized String refreshToken(long expiryWindow, String eveClientID, String eveSecretKey)
+  public String refreshToken(long expiryWindow, String eveClientID, String eveSecretKey)
       throws IOException {
-    SynchronizedEveAccount account = this;
-    // Ensure the access token is valid, if not attempt to renew it
-    if (getAccessTokenExpiry() - OrbitalProperties.getCurrentTime() < expiryWindow) {
-      // Key within expiry window, refresh
-      String rToken = getRefreshToken();
-      if (rToken == null) throw new IOException("No valid refresh token for account: " + getAid());
-      OAuth2AccessToken newToken = EVEAuthHandler.doRefresh(eveClientID, eveSecretKey, rToken);
-      if (newToken == null) {
-        // Invalidate refresh token.
-        refreshToken = null;
-        update(this);
-        throw new IOException("Failed to refresh token for credential: " + getAid());
-      }
-      accessToken = newToken.getAccessToken();
-      accessTokenExpiry = OrbitalProperties.getCurrentTime() +
-          TimeUnit.MILLISECONDS.convert(newToken.getExpiresIn(), TimeUnit.SECONDS);
-      refreshToken = newToken.getRefreshToken();
+    // Synchronize to reduce contention when token must be refreshed
+    synchronized (SynchronizedEveAccount.class) {
+      SynchronizedEveAccount account = this;
+      // Ensure the access token is valid, if not attempt to renew it
+      if (getAccessTokenExpiry() - OrbitalProperties.getCurrentTime() < expiryWindow) {
+        // Key within expiry window, refresh
+        String rToken = getRefreshToken();
+        if (rToken == null) throw new IOException("No valid refresh token for account: " + getAid());
+        OAuth2AccessToken newToken = EVEAuthHandler.doRefresh(eveClientID, eveSecretKey, rToken);
+        if (newToken == null) {
+          // Invalidate refresh token.
+          refreshToken = null;
+          update(this);
+          throw new IOException("Failed to refresh token for credential: " + getAid());
+        }
+        accessToken = newToken.getAccessToken();
+        accessTokenExpiry = OrbitalProperties.getCurrentTime() +
+            TimeUnit.MILLISECONDS.convert(newToken.getExpiresIn(), TimeUnit.SECONDS);
+        refreshToken = newToken.getRefreshToken();
 
-      // Update new refresh token.  Use retries as this lock is occasionally heavily
-      // contested.
-      int retries = TOKEN_LOCK_RETRY_ATTEMPTS;
-      while (retries > 0) {
-        try {
-          retries--;
-          SynchronizedEveAccount updated = update(account);
-          account = updated;
-          break;
-        } catch (IOException x) {
-          if (retries == 0 || !hasLockAcquisitionException(x)) {
-            log.log(Level.SEVERE, "failed to update refresh token with retries", x);
-            throw x;
+        // Update new refresh token.  Use retries as this lock is occasionally heavily
+        // contested.
+        int retries = TOKEN_LOCK_RETRY_ATTEMPTS;
+        while (retries > 0) {
+          try {
+            retries--;
+            SynchronizedEveAccount updated = update(account);
+            account = updated;
+            break;
+          } catch (IOException x) {
+            if (retries == 0 || !hasLockAcquisitionException(x)) {
+              log.log(Level.SEVERE, "failed to update refresh token with retries", x);
+              throw x;
+            }
+            log.log(Level.WARNING, "retrying lock timeout on refresh token for account: " + this);
           }
-          log.log(Level.WARNING, "retrying lock timeout on refresh token for account: " + this);
         }
       }
+      return account.getAccessToken();
     }
-    return account.getAccessToken();
   }
 
   @Override
