@@ -322,6 +322,14 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
     return valid;
   }
 
+  public void setEveCorporationID(long eveCorporationID) {
+    this.eveCorporationID = eveCorporationID;
+  }
+
+  public void setEveCorporationName(String eveCorporationName) {
+    this.eveCorporationName = eveCorporationName;
+  }
+
   public boolean hasScope(String scopeName) {
     // False if we've never set a scope (e.g. because we lack an actual ESI key)
     if (scopes == null) return false;
