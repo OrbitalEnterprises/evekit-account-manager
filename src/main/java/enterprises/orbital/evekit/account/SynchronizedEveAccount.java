@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.github.scribejava.core.model.OAuth2AccessToken;
 import enterprises.orbital.base.OrbitalProperties;
 import enterprises.orbital.base.PersistentPropertyKey;
+import enterprises.orbital.evekit.model.ESIEndpointSyncTracker;
 import enterprises.orbital.evekit.model.SyncTracker;
 import enterprises.orbital.oauth.EVEAuthHandler;
 import io.swagger.annotations.ApiModel;
@@ -954,7 +955,7 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
     try {
       // Remove Sync Trackers
       // Set of sync trackers could be quite large so we remove those in batches
-      long lastRemoved = 0;
+      long lastRemoved;
       do {
         lastRemoved = EveKitUserAccountProvider.getFactory()
                                                .runTransaction(() -> {
@@ -967,6 +968,27 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
                                                  query.setParameter("account", toRemove);
                                                  query.setMaxResults(1000);
                                                  for (SyncTracker next : query.getResultList()) {
+                                                   EveKitUserAccountProvider.getFactory()
+                                                                            .getEntityManager()
+                                                                            .remove(next);
+                                                   removed++;
+                                                 }
+                                                 return removed;
+                                               });
+      } while (lastRemoved > 0);
+      // Remove ESI sync trackers as well
+      do {
+        lastRemoved = EveKitUserAccountProvider.getFactory()
+                                               .runTransaction(() -> {
+                                                 long removed = 0;
+                                                 TypedQuery<ESIEndpointSyncTracker> query = EveKitUserAccountProvider.getFactory()
+                                                                                                                     .getEntityManager()
+                                                                                                                     .createQuery(
+                                                                                                              "SELECT c FROM ESIEndpointSyncTracker c where c.account = :account",
+                                                                                                              ESIEndpointSyncTracker.class);
+                                                 query.setParameter("account", toRemove);
+                                                 query.setMaxResults(1000);
+                                                 for (ESIEndpointSyncTracker next : query.getResultList()) {
                                                    EveKitUserAccountProvider.getFactory()
                                                                             .getEntityManager()
                                                                             .remove(next);

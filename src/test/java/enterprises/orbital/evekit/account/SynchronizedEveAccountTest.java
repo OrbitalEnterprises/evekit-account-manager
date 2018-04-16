@@ -4,6 +4,8 @@ import enterprises.orbital.base.OrbitalProperties;
 import enterprises.orbital.evekit.TestBase;
 import enterprises.orbital.evekit.model.CapsuleerSyncTracker;
 import enterprises.orbital.evekit.model.CorporationSyncTracker;
+import enterprises.orbital.evekit.model.ESIEndpointSyncTracker;
+import enterprises.orbital.evekit.model.ESISyncEndpoint;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -366,6 +368,15 @@ public class SynchronizedEveAccountTest extends TestBase {
       CapsuleerSyncTracker.finishTracker(next);
     }
     System.out.println("Created CapsuleerSyncTrackers");
+
+    count = TestBase.getRandomInt(2000) + 2000;
+    int valLen = ESISyncEndpoint.values().length;
+    for (int i = 0; i < count; i++) {
+      ESISyncEndpoint nextEndpoint = ESISyncEndpoint.values()[TestBase.getRandomInt(valLen)];
+      ESIEndpointSyncTracker next = ESIEndpointSyncTracker.getOrCreateUnfinishedTracker(testAccount, nextEndpoint, OrbitalProperties.getCurrentTime(), null);
+      ESIEndpointSyncTracker.finishTracker(next);
+    }
+    System.out.println("Created ESIEndpointSyncTrackers");
 
     count = TestBase.getRandomInt(50) + 10;
     for (int i = 0; i < count; i++) {
