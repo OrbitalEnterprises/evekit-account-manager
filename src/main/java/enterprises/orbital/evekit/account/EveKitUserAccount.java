@@ -36,9 +36,6 @@ import java.util.logging.Logger;
 public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<String> {
   private static final Logger log = Logger.getLogger(EveKitUserAccount.class.getName());
 
-  // Constants for commonly used properties
-  public static final String PROP_STATIC_DB_ACCESS_LIMIT = "StaticDBAccessLimit";
-
   // Unique user ID
   @Id
   @GeneratedValue(
@@ -141,8 +138,7 @@ public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<Str
     if (admin != other.admin) return false;
     if (created != other.created) return false;
     if (last != other.last) return false;
-    if (uid != other.uid) return false;
-    return true;
+    return uid == other.uid;
   }
 
   @Override
