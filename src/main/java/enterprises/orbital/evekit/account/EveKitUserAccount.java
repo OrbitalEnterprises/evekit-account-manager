@@ -36,6 +36,9 @@ import java.util.logging.Logger;
 public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<String> {
   private static final Logger log = Logger.getLogger(EveKitUserAccount.class.getName());
 
+  // User account properties
+  public static final String PERPROP_ESI_EXPIRE_CONTACT_ADDRESS = "esiExpireContactAddress";
+
   // Unique user ID
   @Id
   @GeneratedValue(

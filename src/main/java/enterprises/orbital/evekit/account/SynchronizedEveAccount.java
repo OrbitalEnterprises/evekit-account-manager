@@ -1,7 +1,9 @@
 package enterprises.orbital.evekit.account;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.github.scribejava.core.exceptions.OAuthException;
 import com.github.scribejava.core.model.OAuth2AccessToken;
+import com.github.scribejava.core.model.OAuth2AccessTokenErrorResponse;
 import enterprises.orbital.base.OrbitalProperties;
 import enterprises.orbital.base.PersistentPropertyKey;
 import enterprises.orbital.evekit.model.ESIEndpointSyncTracker;
@@ -1082,13 +1084,23 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
         // Key within expiry window, refresh
         String rToken = getRefreshToken();
         if (rToken == null) throw new IOException("No valid refresh token for account: " + getAid());
-        OAuth2AccessToken newToken = EVEAuthHandler.doRefresh(eveClientID, eveSecretKey, rToken);
-        if (newToken == null) {
-          // Invalidate refresh token.
-          refreshToken = null;
-          update(this);
-          throw new IOException("Failed to refresh token for credential: " + getAid());
+        OAuth2AccessToken newToken;
+        try {
+          newToken = EVEAuthHandler.doRefresh(eveClientID, eveSecretKey, rToken);
+        } catch (Exception e) {
+          // Might be revoked, in which case we'll need re-authorization
+          if (e instanceof OAuth2AccessTokenErrorResponse &&
+              ((OAuth2AccessTokenErrorResponse) e).getErrorCode() == OAuth2AccessTokenErrorResponse.ErrorCode.invalid_grant) {
+            // Token revoked or otherwise invalid, clear it in our storage
+            account.refreshToken = null;
+            update(account);
+            throw new IOException("Refresh token revoked for account: " + getAid());
+          }
+          // Anything else we treat as SSO being down.  We'll save the token to try again later.
+          log.log(Level.WARNING, "Error refreshing token for account: " + getAid(), e);
+          throw new IOException("Error refreshing token for account: " + getAid());
         }
+
         accessToken = newToken.getAccessToken();
         accessTokenExpiry = OrbitalProperties.getCurrentTime() +
             TimeUnit.MILLISECONDS.convert(newToken.getExpiresIn(), TimeUnit.SECONDS);
