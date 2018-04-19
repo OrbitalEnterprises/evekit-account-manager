@@ -1083,7 +1083,7 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
       if (getAccessTokenExpiry() - OrbitalProperties.getCurrentTime() < expiryWindow) {
         // Key within expiry window, refresh
         String rToken = getRefreshToken();
-        if (rToken == null) throw new IOException("No valid refresh token for account: " + getAid());
+        if (rToken == null || rToken.trim().isEmpty()) throw new IOException("No valid refresh token for account: " + getAid());
         OAuth2AccessToken newToken;
         try {
           newToken = EVEAuthHandler.doRefresh(eveClientID, eveSecretKey, rToken);
