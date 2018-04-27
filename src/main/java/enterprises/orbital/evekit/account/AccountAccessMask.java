@@ -33,6 +33,7 @@ public enum AccountAccessMask {
                                ACCESS_CHARACTER_SHEET(16),
                                ACCESS_CHAT_CHANNELS(40),
                                ACCESS_CONTACT_NOTIFICATIONS(17),
+                               ACCESS_FITTINGS(42),
                                ACCESS_MAIL(18),
                                ACCESS_MAILING_LISTS(19),
                                ACCESS_MEDALS(20),
@@ -50,7 +51,7 @@ public enum AccountAccessMask {
                                ACCESS_MEMBER_SECURITY(29),
                                ACCESS_MEMBER_SECURITY_LOG(30),
                                ACCESS_MEMBER_TRACKING(31),
-                               ACCESS_OUTPOST_LIST(32),
+                               // ACCESS_OUTPOST_LIST(32), - no longer used
                                ACCESS_SHAREHOLDERS(34),
                                ACCESS_STARBASE_LIST(35),
                                ACCESS_CORPORATION_TITLES(37);

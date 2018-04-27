@@ -1,13 +1,20 @@
 package enterprises.orbital.evekit.account;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.github.scribejava.core.builder.ServiceBuilder;
 import com.github.scribejava.core.exceptions.OAuthException;
 import com.github.scribejava.core.model.OAuth2AccessToken;
 import com.github.scribejava.core.model.OAuth2AccessTokenErrorResponse;
+import com.github.scribejava.core.model.OAuthRequest;
+import com.github.scribejava.core.model.Verb;
+import com.github.scribejava.core.oauth.OAuth20Service;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import enterprises.orbital.base.OrbitalProperties;
 import enterprises.orbital.base.PersistentPropertyKey;
 import enterprises.orbital.evekit.model.ESIEndpointSyncTracker;
 import enterprises.orbital.evekit.model.SyncTracker;
+import enterprises.orbital.oauth.EVEApi;
 import enterprises.orbital.oauth.EVEAuthHandler;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -1086,16 +1093,27 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
         if (rToken == null || rToken.trim().isEmpty()) throw new IOException("No valid refresh token for account: " + getAid());
         OAuth2AccessToken newToken;
         try {
-          newToken = EVEAuthHandler.doRefresh(eveClientID, eveSecretKey, rToken);
+          // EVEAuthHandler doesn't expose the correct exceptions so this is a temporary workaround
+          // so we can detect revoked tokens properly.
+          ServiceBuilder builder = new ServiceBuilder().apiKey(eveClientID).apiSecret(eveSecretKey);
+          OAuth20Service service = builder.build(EVEApi.instance());
+          newToken = service.refreshAccessToken(rToken);
         } catch (Exception e) {
-          // Might be revoked, in which case we'll need re-authorization
-          if (e instanceof OAuth2AccessTokenErrorResponse &&
-              ((OAuth2AccessTokenErrorResponse) e).getErrorCode() == OAuth2AccessTokenErrorResponse.ErrorCode.invalid_grant) {
-            // Token revoked or otherwise invalid, clear it in our storage
-            account.refreshToken = null;
-            update(account);
-            throw new IOException("Refresh token revoked for account: " + getAid());
+          if (e instanceof OAuth2AccessTokenErrorResponse) {
+            switch (((OAuth2AccessTokenErrorResponse) e).getErrorCode()) {
+              case invalid_grant:
+              case invalid_token:
+                // Token revoked or otherwise invalid, clear it in our storage
+                account.refreshToken = null;
+                update(account);
+                log.log(Level.WARNING, "Refresh token revoked for account: " + getAid(), e);
+                throw new IOException("Refresh token revoked for account: " + getAid());
+
+              default:
+                // fallthrough
+            }
           }
+
           // Anything else we treat as SSO being down.  We'll save the token to try again later.
           log.log(Level.WARNING, "Error refreshing token for account: " + getAid(), e);
           throw new IOException("Error refreshing token for account: " + getAid());
