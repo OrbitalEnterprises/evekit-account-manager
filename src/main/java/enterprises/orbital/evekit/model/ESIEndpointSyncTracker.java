@@ -10,7 +10,9 @@ import io.swagger.annotations.ApiModelProperty;
 
 import javax.persistence.*;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -252,6 +254,25 @@ public class ESIEndpointSyncTracker {
     return status != ESISyncState.NOT_PROCESSED;
   }
 
+  // We serialize tracker actions by account ID wherever possible.  This prevents races between
+  // threads tracking for the same account.  Note that it's not safe to sync on the account object
+  // itself since this is a persisted object, the proper reference to which can change based
+  // on DB operations.
+  private static final Map<Long, Object> trackerLock = new HashMap<>();
+
+  @SuppressWarnings("Duplicates")
+  private static Object getTrackerLock(SynchronizedEveAccount acct) {
+    synchronized (trackerLock) {
+      Object lck = trackerLock.get(acct.getAid());
+      if (lck == null) {
+        lck = OrbitalProperties.getCurrentTime();
+        trackerLock.put(acct.getAid(), lck);
+      }
+      return lck;
+    }
+  }
+
+
   /**
    * Mark a tracker as finished by assigning a "sync end".  Sync end time is always assigned to the current
    * local time as retrieved from OrbitalProperties.getCurrentTime.
@@ -304,7 +325,7 @@ public class ESIEndpointSyncTracker {
    * @throws TrackerNotFoundException if an unfinished tracker could not be found
    */
   public static ESIEndpointSyncTracker getUnfinishedTracker(SynchronizedEveAccount account, ESISyncEndpoint endpoint) throws IOException, TrackerNotFoundException {
-    synchronized (account) {
+    synchronized (getTrackerLock(account)) {
       try {
         return EveKitUserAccountProvider.getFactory()
                                         .runTransaction(() -> {
@@ -382,7 +403,7 @@ public class ESIEndpointSyncTracker {
    * @throws IOException on any database error
    */
   public static ESIEndpointSyncTracker getOrCreateUnfinishedTracker(SynchronizedEveAccount account, ESISyncEndpoint endpoint, long scheduled, String context) throws IOException {
-    synchronized (account) {
+    synchronized (getTrackerLock(account)) {
       try {
         return EveKitUserAccountProvider.getFactory()
                                         .runTransaction(() -> {
@@ -417,7 +438,7 @@ public class ESIEndpointSyncTracker {
    * @throws TrackerNotFoundException if no tracker could be found.
    */
   public static ESIEndpointSyncTracker getLatestFinishedTracker(SynchronizedEveAccount account, ESISyncEndpoint endpoint) throws IOException, TrackerNotFoundException {
-    synchronized (account) {
+    synchronized (getTrackerLock(account)) {
       try {
         return EveKitUserAccountProvider.getFactory()
                                         .runTransaction(() -> {
@@ -453,7 +474,7 @@ public class ESIEndpointSyncTracker {
    * @throws TrackerNotFoundException if no tracker could be found.
    */
   public static ESIEndpointSyncTracker getAnyLatestFinishedTracker(SynchronizedEveAccount account) throws IOException, TrackerNotFoundException {
-    synchronized (account) {
+    synchronized (getTrackerLock(account)) {
       try {
         return EveKitUserAccountProvider.getFactory()
                                         .runTransaction(() -> {
