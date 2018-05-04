@@ -12,7 +12,6 @@ public enum ESIScope {
   CHAR_READ_BOOKMARKS("esi-bookmarks.read_character_bookmarks.v1", "Access to character personal bookmarks and bookmark folders."),
   CORP_READ_BOOKMARKS("esi-bookmarks.read_corporation_bookmarks.v1", "Access to corporation bookmarks and bookmark folder."),
   CHAR_READ_CALENDAR("esi-calendar.read_calendar_events.v1", "Access to character calendar events, summaries and attendees."),
-  CHAR_READ_CHANNELS("esi-characters.read_chat_channels.v1", "Access to character chat channel list."),
   CHAR_READ_MEDALS("esi-characters.read_medals.v1", "Access to character medals."),
   CHAR_READ_STANDINGS("esi-characters.read_standings.v1", "Access to character standings."),
   CHAR_READ_AGENTS("esi-characters.read_agents_research.v1", "Access to character agent research."),
