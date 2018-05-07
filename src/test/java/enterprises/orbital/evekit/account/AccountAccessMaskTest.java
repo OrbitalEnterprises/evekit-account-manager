@@ -1,13 +1,23 @@
 package enterprises.orbital.evekit.account;
 
-import java.util.Arrays;
-
 import org.junit.Assert;
 import org.junit.Test;
 
-import enterprises.orbital.evekit.account.AccountAccessMask;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 public class AccountAccessMaskTest {
+
+  @Test
+  public void testUniqueConstants() {
+    Set<Integer> seen = new HashSet<>();
+    for (AccountAccessMask next : AccountAccessMask.values()) {
+      Assert.assertFalse(seen.contains(next.getMaskValue()));
+      seen.add(next.getMaskValue());
+    }
+  }
 
   @Test
   public void testSetMask() {
@@ -33,45 +43,39 @@ public class AccountAccessMaskTest {
     Assert.assertTrue(AccountAccessMask.isValidMask(value));
     for (AccountAccessMask next : AccountAccessMask.values()) {
       switch (next) {
-      case ACCESS_SKILL_QUEUE:
-      case ACCESS_ACCOUNT_BALANCE:
-        Assert.assertTrue(AccountAccessMask.isAccessAllowed(value, next));
-        break;
-      default:
-        Assert.assertFalse(AccountAccessMask.isAccessAllowed(value, next));
+        case ACCESS_SKILL_QUEUE:
+        case ACCESS_ACCOUNT_BALANCE:
+          Assert.assertTrue(AccountAccessMask.isAccessAllowed(value, next));
+          break;
+        default:
+          Assert.assertFalse(AccountAccessMask.isAccessAllowed(value, next));
       }
     }
   }
 
   @Test
   public void testIsAccessAllowedYes() {
-    byte[] mask = AccountAccessMask.createMask(Arrays.asList(new AccountAccessMask[] {
-        AccountAccessMask.ACCESS_ACCOUNT_BALANCE, AccountAccessMask.ACCESS_SKILL_QUEUE
-    }));
+    byte[] mask = AccountAccessMask.createMask(Arrays.asList(AccountAccessMask.ACCESS_ACCOUNT_BALANCE,
+                                                             AccountAccessMask.ACCESS_SKILL_QUEUE));
     Assert.assertTrue(AccountAccessMask.isAccessAllowed(mask, AccountAccessMask.ACCESS_SKILL_QUEUE));
   }
 
   @Test
   public void testIsAccessAllowedNo() {
-    byte[] mask = AccountAccessMask.createMask(Arrays.asList(new AccountAccessMask[] {
-        AccountAccessMask.ACCESS_ACCOUNT_BALANCE, AccountAccessMask.ACCESS_SKILL_QUEUE
-    }));
+    byte[] mask = AccountAccessMask.createMask(Arrays.asList(AccountAccessMask.ACCESS_ACCOUNT_BALANCE,
+                                                             AccountAccessMask.ACCESS_SKILL_QUEUE));
     Assert.assertFalse(AccountAccessMask.isAccessAllowed(mask, AccountAccessMask.ACCESS_WALLET_JOURNAL));
   }
 
   @Test
   public void testCheckAccessYes() {
-    byte[] mask = AccountAccessMask.createMask(Arrays.asList(new AccountAccessMask[] {
-      AccountAccessMask.ACCESS_ACCOUNT_BALANCE
-    }));
+    byte[] mask = AccountAccessMask.createMask(Collections.singletonList(AccountAccessMask.ACCESS_ACCOUNT_BALANCE));
     Assert.assertTrue(AccountAccessMask.ACCESS_ACCOUNT_BALANCE.checkAccess(mask));
   }
 
   @Test
   public void testCheckAccessNo() {
-    byte[] mask = AccountAccessMask.createMask(Arrays.asList(new AccountAccessMask[] {
-      AccountAccessMask.ACCESS_ASSETS
-    }));
+    byte[] mask = AccountAccessMask.createMask(Collections.singletonList(AccountAccessMask.ACCESS_ASSETS));
     Assert.assertFalse(AccountAccessMask.ACCESS_ACCOUNT_BALANCE.checkAccess(mask));
   }
 
@@ -83,8 +87,8 @@ public class AccountAccessMaskTest {
     }
     max = max + 1;
     byte[] testMask = new byte[((max + 1) / 8) + ((max + 1) % 8 > 0
-                                                                   ? 1
-                                                                   : 0)];
+        ? 1
+        : 0)];
     int offset = max / 8;
     int bit = max % 8;
     testMask[offset] |= 1L << bit;
