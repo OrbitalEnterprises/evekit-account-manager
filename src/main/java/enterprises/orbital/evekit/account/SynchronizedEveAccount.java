@@ -1130,8 +1130,7 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
         while (retries > 0) {
           try {
             retries--;
-            SynchronizedEveAccount updated = update(account);
-            account = updated;
+            account = update(account);
             break;
           } catch (IOException x) {
             if (retries == 0 || !hasLockAcquisitionException(x)) {
