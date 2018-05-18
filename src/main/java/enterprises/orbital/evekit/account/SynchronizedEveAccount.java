@@ -21,9 +21,7 @@ import io.swagger.annotations.ApiModelProperty;
 
 import javax.persistence.*;
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -1150,4 +1148,30 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
     // Key scheme: SyncAccount.<UID>.<AID>.<field>
     return "SyncAccount." + String.valueOf(userAccount.getID()) + "." + String.valueOf(aid) + "." + field;
   }
+
+  // Convenient in-memory per-sync account locking map.  Callers can use "getTrackerLock" and synchronize
+  // on the returned object to ensure serialization among all activities performed for a given synchronized
+  // account.  This is needed because serializing on the SynchronizedEveAccount reference itself won't
+  // always work as such an instance may actually be a wrapper created by Hibernate.  This map is in-memory
+  // only and will not prevent separate processes from acting on a synch account concurrently.
+  private static final Map<Long, Object> trackerLock = new HashMap<>();
+
+  /**
+   * Return the lock object which should be used if serialization on a given sync account is needed.
+   *
+   * @param acct the SynchronizedEveAccount for which a lock object should be retrieved.
+   * @return the appropriate lock object.
+   */
+  @SuppressWarnings("Duplicates")
+  public static Object getSyncAccountLock(SynchronizedEveAccount acct) {
+    synchronized (trackerLock) {
+      Object lck = trackerLock.get(acct.getAid());
+      if (lck == null) {
+        lck = OrbitalProperties.getCurrentTime();
+        trackerLock.put(acct.getAid(), lck);
+      }
+      return lck;
+    }
+  }
+
 }
