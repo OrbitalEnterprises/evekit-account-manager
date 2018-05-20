@@ -10,30 +10,28 @@ import io.swagger.annotations.ApiModelProperty;
 
 import javax.persistence.*;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  * Object to track synchronization of an ESI endpoint (see ESISyncEndpoint) for a synchronized account.
  * An instance of this class tracks the synchronization status for a given endpoint.
- *
+ * <p>
  * The state stored here is:
  *
  * <ul>
- *   <li>Unique tracker ID</li>
- *   <li>The account for which data will be synchronized</li>
- *   <li>The endpoint being synchronized (an enum)</li>
- *   <li>The time when this synchronization is scheduled to start</li>
- *   <li>The actual start time of this synchronization</li>
- *   <li>The end time of this synchronization</li>
- *   <li>The status of the synchronization (an enum)</li>
- *   <li>A detail message related to the status of this synchronization.</li>
- *   <li>Optional context which is used by some synchronization code</li>
+ * <li>Unique tracker ID</li>
+ * <li>The account for which data will be synchronized</li>
+ * <li>The endpoint being synchronized (an enum)</li>
+ * <li>The time when this synchronization is scheduled to start</li>
+ * <li>The actual start time of this synchronization</li>
+ * <li>The end time of this synchronization</li>
+ * <li>The status of the synchronization (an enum)</li>
+ * <li>A detail message related to the status of this synchronization.</li>
+ * <li>Optional context which is used by some synchronization code</li>
  * </ul>
- *
  */
 
 @Entity
@@ -79,7 +77,7 @@ import java.util.logging.Logger;
 @ApiModel(
     description = "ESI endpoint synchronization tracker")
 public class ESIEndpointSyncTracker {
-  private static final Logger   log       = Logger.getLogger(ESIEndpointSyncTracker.class.getName());
+  private static final Logger log = Logger.getLogger(ESIEndpointSyncTracker.class.getName());
 
   // Unique tracker ID
   @Id
@@ -94,7 +92,7 @@ public class ESIEndpointSyncTracker {
   @ApiModelProperty(
       value = "Uniquer tracker ID")
   @JsonProperty("tid")
-  protected long                   tid;
+  protected long tid;
 
   // Account with which this tracker is associated
   @ManyToOne
@@ -114,21 +112,21 @@ public class ESIEndpointSyncTracker {
   @ApiModelProperty(
       value = "Scheduled tracker start time (milliseconds UTC)")
   @JsonProperty("scheduled")
-  protected long                   scheduled;
+  protected long scheduled;
 
   // Time when this tracker started synchronization
   // -1 if not yet started
   @ApiModelProperty(
       value = "Tracker start time (milliseconds UTC)")
   @JsonProperty("syncStart")
-  protected long                   syncStart = -1;
+  protected long syncStart = -1;
 
   // Time when this tracked completed synchronization
   // -1 if not yet completed
   @ApiModelProperty(
       value = "Tracker end time (milliseconds UTC)")
   @JsonProperty("syncEnd")
-  protected long                   syncEnd   = -1;
+  protected long syncEnd = -1;
 
   // Synchronization status
   @ApiModelProperty(
@@ -139,7 +137,7 @@ public class ESIEndpointSyncTracker {
   @ApiModelProperty(
       value = "status detail message")
   @JsonProperty("detail")
-  private String  detail;
+  private String detail;
 
   // Opaque context used by some synchronization code
   @JsonIgnore
@@ -272,21 +270,25 @@ public class ESIEndpointSyncTracker {
    *
    * @param tid the ID of the tracker to retrieve
    * @return the tracker with the given ID
-   * @throws IOException on any database error
+   * @throws IOException              on any database error
    * @throws TrackerNotFoundException if a tracker with the given ID could not be found
    */
   public static ESIEndpointSyncTracker get(long tid) throws IOException, TrackerNotFoundException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(() -> {
-          TypedQuery<ESIEndpointSyncTracker> getter = EveKitUserAccountProvider.getFactory().getEntityManager().createNamedQuery("ESIEndpointSyncTracker.get",
-                                                                                                                             ESIEndpointSyncTracker.class);
-          getter.setParameter("tid", tid);
-          try {
-            return getter.getSingleResult();
-          } catch (NoResultException e) {
-            throw new TrackerNotFoundException();
-          }
-        });
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        TypedQuery<ESIEndpointSyncTracker> getter = EveKitUserAccountProvider.getFactory()
+                                                                                                             .getEntityManager()
+                                                                                                             .createNamedQuery(
+                                                                                                                 "ESIEndpointSyncTracker.get",
+                                                                                                                 ESIEndpointSyncTracker.class);
+                                        getter.setParameter("tid", tid);
+                                        try {
+                                          return getter.getSingleResult();
+                                        } catch (NoResultException e) {
+                                          throw new TrackerNotFoundException();
+                                        }
+                                      });
     } catch (Exception e) {
       if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       if (e.getCause() instanceof TrackerNotFoundException) throw (TrackerNotFoundException) e.getCause();
@@ -299,36 +301,39 @@ public class ESIEndpointSyncTracker {
    * Get the current unfinished tracker for the given account and endpoint.  There should be at most once such
    * tracker at any given time.
    *
-   * @param account the owner of the given tracker
+   * @param account  the owner of the given tracker
    * @param endpoint the endpoint of the given tracker
    * @return the current unfinished tracker for the given account and endpoint, if one exists
-   * @throws IOException on any database error
+   * @throws IOException              on any database error
    * @throws TrackerNotFoundException if an unfinished tracker could not be found
    */
-  public static ESIEndpointSyncTracker getUnfinishedTracker(SynchronizedEveAccount account, ESISyncEndpoint endpoint) throws IOException, TrackerNotFoundException {
-    synchronized (SynchronizedEveAccount.getSyncAccountLock(account)) {
-      try {
-        return EveKitUserAccountProvider.getFactory()
-                                        .runTransaction(() -> {
-                                          TypedQuery<ESIEndpointSyncTracker> getter = EveKitUserAccountProvider.getFactory()
-                                                                                                               .getEntityManager()
-                                                                                                               .createNamedQuery(
-                                                                                                                   "ESIEndpointSyncTracker.getUnfinished",
-                                                                                                                   ESIEndpointSyncTracker.class);
-                                          getter.setParameter("account", account);
-                                          getter.setParameter("endpoint", endpoint);
-                                          try {
-                                            return getter.getSingleResult();
-                                          } catch (NoResultException e) {
-                                            throw new TrackerNotFoundException();
-                                          }
-                                        });
-      } catch (Exception e) {
-        if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
-        if (e.getCause() instanceof TrackerNotFoundException) throw (TrackerNotFoundException) e.getCause();
-        log.log(Level.SEVERE, "query error", e);
-        throw new IOException(e.getCause());
-      }
+  public static ESIEndpointSyncTracker getUnfinishedTracker(SynchronizedEveAccount account,
+                                                            ESISyncEndpoint endpoint) throws IOException, TrackerNotFoundException {
+    ReentrantLock lck = SynchronizedEveAccount.getSyncAccountLock(account);
+    lck.lock();
+    try {
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        TypedQuery<ESIEndpointSyncTracker> getter = EveKitUserAccountProvider.getFactory()
+                                                                                                             .getEntityManager()
+                                                                                                             .createNamedQuery(
+                                                                                                                 "ESIEndpointSyncTracker.getUnfinished",
+                                                                                                                 ESIEndpointSyncTracker.class);
+                                        getter.setParameter("account", account);
+                                        getter.setParameter("endpoint", endpoint);
+                                        try {
+                                          return getter.getSingleResult();
+                                        } catch (NoResultException e) {
+                                          throw new TrackerNotFoundException();
+                                        }
+                                      });
+    } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
+      if (e.getCause() instanceof TrackerNotFoundException) throw (TrackerNotFoundException) e.getCause();
+      log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
+    } finally {
+      lck.unlock();
     }
   }
 
@@ -340,11 +345,15 @@ public class ESIEndpointSyncTracker {
    */
   public static synchronized List<ESIEndpointSyncTracker> getAllUnfinishedTrackers() throws IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(() -> {
-        TypedQuery<ESIEndpointSyncTracker> getter = EveKitUserAccountProvider.getFactory().getEntityManager().createNamedQuery("ESIEndpointSyncTracker.getAllUnfinished",
-                                                                                                                               ESIEndpointSyncTracker.class);
-        return getter.getResultList();
-      });
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        TypedQuery<ESIEndpointSyncTracker> getter = EveKitUserAccountProvider.getFactory()
+                                                                                                             .getEntityManager()
+                                                                                                             .createNamedQuery(
+                                                                                                                 "ESIEndpointSyncTracker.getAllUnfinished",
+                                                                                                                 ESIEndpointSyncTracker.class);
+                                        return getter.getResultList();
+                                      });
     } catch (Exception e) {
       if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
@@ -360,11 +369,15 @@ public class ESIEndpointSyncTracker {
    */
   public static synchronized List<ESIEndpointSyncTracker> getAllStartedUnfinishedTrackers() throws IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(() -> {
-        TypedQuery<ESIEndpointSyncTracker> getter = EveKitUserAccountProvider.getFactory().getEntityManager().createNamedQuery("ESIEndpointSyncTracker.getAllStartedUnfinished",
-                                                                                                                               ESIEndpointSyncTracker.class);
-        return getter.getResultList();
-      });
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        TypedQuery<ESIEndpointSyncTracker> getter = EveKitUserAccountProvider.getFactory()
+                                                                                                             .getEntityManager()
+                                                                                                             .createNamedQuery(
+                                                                                                                 "ESIEndpointSyncTracker.getAllStartedUnfinished",
+                                                                                                                 ESIEndpointSyncTracker.class);
+                                        return getter.getResultList();
+                                      });
     } catch (Exception e) {
       if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
@@ -376,73 +389,80 @@ public class ESIEndpointSyncTracker {
    * Get the unfinished tracker for the given account and endpoint.  If no such tracker exists, then create one
    * and assign a scheduled start time.
    *
-   * @param account the owner of the unfinished tracker
-   * @param endpoint the endpoint of the unfinished tracker
+   * @param account   the owner of the unfinished tracker
+   * @param endpoint  the endpoint of the unfinished tracker
    * @param scheduled the scheduled start time if we need to create a new tracker
-   * @param context optional context for this sync event
+   * @param context   optional context for this sync event
    * @return an existing unfinished tracker, or a new one created with the specified schedules start time
    * @throws IOException on any database error
    */
-  public static ESIEndpointSyncTracker getOrCreateUnfinishedTracker(SynchronizedEveAccount account, ESISyncEndpoint endpoint, long scheduled, String context) throws IOException {
-    synchronized (SynchronizedEveAccount.getSyncAccountLock(account)) {
-      try {
-        return EveKitUserAccountProvider.getFactory()
-                                        .runTransaction(() -> {
-                                          try {
-                                            // If this call succeeds without throwing an exception then we already have an unfinished tracker
-                                            return getUnfinishedTracker(account, endpoint);
-                                          } catch (TrackerNotFoundException e) {
-                                            // Otherwise, create and schedule a tracker
-                                            ESIEndpointSyncTracker tracker = new ESIEndpointSyncTracker();
-                                            tracker.account = account;
-                                            tracker.endpoint = endpoint;
-                                            tracker.scheduled = scheduled;
-                                            tracker.context = context;
-                                            return EveKitUserAccountProvider.update(tracker);
-                                          }
-                                        });
-      } catch (Exception e) {
-        if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
-        log.log(Level.SEVERE, "query error", e);
-        throw new IOException(e.getCause());
-      }
+  public static ESIEndpointSyncTracker getOrCreateUnfinishedTracker(SynchronizedEveAccount account,
+                                                                    ESISyncEndpoint endpoint, long scheduled,
+                                                                    String context) throws IOException {
+    ReentrantLock lck = SynchronizedEveAccount.getSyncAccountLock(account);
+    lck.lock();
+    try {
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        try {
+                                          // If this call succeeds without throwing an exception then we already have an unfinished tracker
+                                          return getUnfinishedTracker(account, endpoint);
+                                        } catch (TrackerNotFoundException e) {
+                                          // Otherwise, create and schedule a tracker
+                                          ESIEndpointSyncTracker tracker = new ESIEndpointSyncTracker();
+                                          tracker.account = account;
+                                          tracker.endpoint = endpoint;
+                                          tracker.scheduled = scheduled;
+                                          tracker.context = context;
+                                          return EveKitUserAccountProvider.update(tracker);
+                                        }
+                                      });
+    } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
+      log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
+    } finally {
+      lck.unlock();
     }
   }
 
   /**
    * Retrieve the last finished tracker (ordered by end time) for the given account and endpoint, if one exists.
    *
-   * @param account the owner of the last finished tracker.
+   * @param account  the owner of the last finished tracker.
    * @param endpoint the endpoint of the last finished tracker.
    * @return the last finished tracker if one exists.
-   * @throws IOException on any database error.
+   * @throws IOException              on any database error.
    * @throws TrackerNotFoundException if no tracker could be found.
    */
-  public static ESIEndpointSyncTracker getLatestFinishedTracker(SynchronizedEveAccount account, ESISyncEndpoint endpoint) throws IOException, TrackerNotFoundException {
-    synchronized (SynchronizedEveAccount.getSyncAccountLock(account)) {
-      try {
-        return EveKitUserAccountProvider.getFactory()
-                                        .runTransaction(() -> {
-                                          TypedQuery<ESIEndpointSyncTracker> getter = EveKitUserAccountProvider.getFactory()
-                                                                                                               .getEntityManager()
-                                                                                                               .createNamedQuery(
-                                                                                                                   "ESIEndpointSyncTracker.getLastFinished",
-                                                                                                                   ESIEndpointSyncTracker.class);
-                                          getter.setParameter("account", account);
-                                          getter.setParameter("endpoint", endpoint);
-                                          getter.setMaxResults(1);
-                                          try {
-                                            return getter.getSingleResult();
-                                          } catch (NoResultException e) {
-                                            throw new TrackerNotFoundException();
-                                          }
-                                        });
-      } catch (Exception e) {
-        if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
-        if (e.getCause() instanceof TrackerNotFoundException) throw (TrackerNotFoundException) e.getCause();
-        log.log(Level.SEVERE, "query error", e);
-        throw new IOException(e.getCause());
-      }
+  public static ESIEndpointSyncTracker getLatestFinishedTracker(SynchronizedEveAccount account,
+                                                                ESISyncEndpoint endpoint) throws IOException, TrackerNotFoundException {
+    ReentrantLock lck = SynchronizedEveAccount.getSyncAccountLock(account);
+    lck.lock();
+    try {
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        TypedQuery<ESIEndpointSyncTracker> getter = EveKitUserAccountProvider.getFactory()
+                                                                                                             .getEntityManager()
+                                                                                                             .createNamedQuery(
+                                                                                                                 "ESIEndpointSyncTracker.getLastFinished",
+                                                                                                                 ESIEndpointSyncTracker.class);
+                                        getter.setParameter("account", account);
+                                        getter.setParameter("endpoint", endpoint);
+                                        getter.setMaxResults(1);
+                                        try {
+                                          return getter.getSingleResult();
+                                        } catch (NoResultException e) {
+                                          throw new TrackerNotFoundException();
+                                        }
+                                      });
+    } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
+      if (e.getCause() instanceof TrackerNotFoundException) throw (TrackerNotFoundException) e.getCause();
+      log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
+    } finally {
+      lck.unlock();
     }
   }
 
@@ -451,31 +471,34 @@ public class ESIEndpointSyncTracker {
    *
    * @param account the owner of the last finished tracker.
    * @return the last finished tracker if one exists.
-   * @throws IOException on any database error.
+   * @throws IOException              on any database error.
    * @throws TrackerNotFoundException if no tracker could be found.
    */
-  public static ESIEndpointSyncTracker getAnyLatestFinishedTracker(SynchronizedEveAccount account) throws IOException, TrackerNotFoundException {
-    synchronized (SynchronizedEveAccount.getSyncAccountLock(account)) {
-      try {
-        return EveKitUserAccountProvider.getFactory()
-                                        .runTransaction(() -> {
-                                          TypedQuery<ESIEndpointSyncTracker> getter = EveKitUserAccountProvider.getFactory()
-                                                                                                               .getEntityManager()
-                                                                                                               .createNamedQuery(
-                                                                                                                   "ESIEndpointSyncTracker.getAnyLastFinished",
-                                                                                                                   ESIEndpointSyncTracker.class);
-                                          getter.setParameter("account", account);
-                                          getter.setMaxResults(1);
-                                          List<ESIEndpointSyncTracker> results = getter.getResultList();
-                                          if (results.isEmpty()) throw new TrackerNotFoundException();
-                                          return results.get(0);
-                                        });
-      } catch (Exception e) {
-        if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
-        if (e.getCause() instanceof TrackerNotFoundException) throw (TrackerNotFoundException) e.getCause();
-        log.log(Level.SEVERE, "query error", e);
-        throw new IOException(e.getCause());
-      }
+  public static ESIEndpointSyncTracker getAnyLatestFinishedTracker(
+      SynchronizedEveAccount account) throws IOException, TrackerNotFoundException {
+    ReentrantLock lck = SynchronizedEveAccount.getSyncAccountLock(account);
+    lck.lock();
+    try {
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        TypedQuery<ESIEndpointSyncTracker> getter = EveKitUserAccountProvider.getFactory()
+                                                                                                             .getEntityManager()
+                                                                                                             .createNamedQuery(
+                                                                                                                 "ESIEndpointSyncTracker.getAnyLastFinished",
+                                                                                                                 ESIEndpointSyncTracker.class);
+                                        getter.setParameter("account", account);
+                                        getter.setMaxResults(1);
+                                        List<ESIEndpointSyncTracker> results = getter.getResultList();
+                                        if (results.isEmpty()) throw new TrackerNotFoundException();
+                                        return results.get(0);
+                                      });
+    } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
+      if (e.getCause() instanceof TrackerNotFoundException) throw (TrackerNotFoundException) e.getCause();
+      log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
+    } finally {
+      lck.unlock();
     }
   }
 
@@ -483,24 +506,29 @@ public class ESIEndpointSyncTracker {
    * Retrieve history of finished trackers for a given account and endpoint.  Retrieved items are ordered in
    * descending order by start time.
    *
-   * @param account the owner of retrieved trackers.
-   * @param endpoint the endpoint of retrieved trackers.
-   * @param contid the upper bound on tracker start time.
+   * @param account    the owner of retrieved trackers.
+   * @param endpoint   the endpoint of retrieved trackers.
+   * @param contid     the upper bound on tracker start time.
    * @param maxResults the maximum number of trackers to retrieve.
    * @return a list of finished trackers order in descending order by start time.
    * @throws IOException on any database error.
    */
-  public static List<ESIEndpointSyncTracker> getHistory(SynchronizedEveAccount account, ESISyncEndpoint endpoint, long contid, int maxResults) throws IOException {
+  public static List<ESIEndpointSyncTracker> getHistory(SynchronizedEveAccount account, ESISyncEndpoint endpoint,
+                                                        long contid, int maxResults) throws IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(() -> {
-          TypedQuery<ESIEndpointSyncTracker> getter = EveKitUserAccountProvider.getFactory().getEntityManager().createNamedQuery("ESIEndpointSyncTracker.getHistory",
-                                                                                                                                 ESIEndpointSyncTracker.class);
-          getter.setParameter("account", account);
-          getter.setParameter("endpoint", endpoint);
-          getter.setParameter("start", contid < 0 ? Long.MAX_VALUE : contid);
-          getter.setMaxResults(maxResults);
-          return getter.getResultList();
-        });
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        TypedQuery<ESIEndpointSyncTracker> getter = EveKitUserAccountProvider.getFactory()
+                                                                                                             .getEntityManager()
+                                                                                                             .createNamedQuery(
+                                                                                                                 "ESIEndpointSyncTracker.getHistory",
+                                                                                                                 ESIEndpointSyncTracker.class);
+                                        getter.setParameter("account", account);
+                                        getter.setParameter("endpoint", endpoint);
+                                        getter.setParameter("start", contid < 0 ? Long.MAX_VALUE : contid);
+                                        getter.setMaxResults(maxResults);
+                                        return getter.getResultList();
+                                      });
     } catch (Exception e) {
       if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
@@ -512,22 +540,27 @@ public class ESIEndpointSyncTracker {
    * Retrieve ordered history of finished trackers for a given account and all endpoints.  Retrieved items are ordered in
    * descending order by start time.
    *
-   * @param account the owner of retrieved trackers.
-   * @param contid the upper bound on tracker start time.
+   * @param account    the owner of retrieved trackers.
+   * @param contid     the upper bound on tracker start time.
    * @param maxResults the maximum number of trackers to retrieve.
    * @return a list of finished trackers order in descending order by start time.
    * @throws IOException on any database error.
    */
-  public static List<ESIEndpointSyncTracker> getAllHistory(SynchronizedEveAccount account, long contid, int maxResults) throws IOException {
+  public static List<ESIEndpointSyncTracker> getAllHistory(SynchronizedEveAccount account, long contid,
+                                                           int maxResults) throws IOException {
     try {
-      return EveKitUserAccountProvider.getFactory().runTransaction(() -> {
-        TypedQuery<ESIEndpointSyncTracker> getter = EveKitUserAccountProvider.getFactory().getEntityManager().createNamedQuery("ESIEndpointSyncTracker.getAllHistory",
-                                                                                                                               ESIEndpointSyncTracker.class);
-        getter.setParameter("account", account);
-        getter.setParameter("start", contid < 0 ? Long.MAX_VALUE : contid);
-        getter.setMaxResults(maxResults);
-        return getter.getResultList();
-      });
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        TypedQuery<ESIEndpointSyncTracker> getter = EveKitUserAccountProvider.getFactory()
+                                                                                                             .getEntityManager()
+                                                                                                             .createNamedQuery(
+                                                                                                                 "ESIEndpointSyncTracker.getAllHistory",
+                                                                                                                 ESIEndpointSyncTracker.class);
+                                        getter.setParameter("account", account);
+                                        getter.setParameter("start", contid < 0 ? Long.MAX_VALUE : contid);
+                                        getter.setMaxResults(maxResults);
+                                        return getter.getResultList();
+                                      });
     } catch (Exception e) {
       if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);

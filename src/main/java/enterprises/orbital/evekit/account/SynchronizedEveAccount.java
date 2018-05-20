@@ -23,6 +23,7 @@ import javax.persistence.*;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -1154,7 +1155,7 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
   // account.  This is needed because serializing on the SynchronizedEveAccount reference itself won't
   // always work as such an instance may actually be a wrapper created by Hibernate.  This map is in-memory
   // only and will not prevent separate processes from acting on a synch account concurrently.
-  private static final Map<Long, Object> trackerLock = new HashMap<>();
+  private static final Map<Long, ReentrantLock> trackerLock = new HashMap<>();
 
   /**
    * Return the lock object which should be used if serialization on a given sync account is needed.
@@ -1163,11 +1164,11 @@ public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
    * @return the appropriate lock object.
    */
   @SuppressWarnings("Duplicates")
-  public static Object getSyncAccountLock(SynchronizedEveAccount acct) {
+  public static ReentrantLock getSyncAccountLock(SynchronizedEveAccount acct) {
     synchronized (trackerLock) {
-      Object lck = trackerLock.get(acct.getAid());
+      ReentrantLock lck = trackerLock.get(acct.getAid());
       if (lck == null) {
-        lck = OrbitalProperties.getCurrentTime();
+        lck = new ReentrantLock(true);
         trackerLock.put(acct.getAid(), lck);
       }
       return lck;
