@@ -31,6 +31,7 @@ public enum AccountAccessMask {
 
   // Character Specific Resources
   ACCESS_CALENDAR_EVENT_ATTENDEES(15),
+  ACCESS_CHARACTER_FLEETS(44),
   ACCESS_CHARACTER_SHEET(16),
   ACCESS_CHAT_CHANNELS(40),
   ACCESS_CONTACT_NOTIFICATIONS(17),
@@ -55,6 +56,7 @@ public enum AccountAccessMask {
   // ACCESS_OUTPOST_LIST(32), - no longer used
   ACCESS_SHAREHOLDERS(34),
   ACCESS_STARBASE_LIST(35),
+  ACCESS_STRUCTURES(45),
   ACCESS_CORPORATION_TITLES(37);
 
   private static final Logger log = Logger.getLogger(AccountAccessMask.class.getName());

@@ -14,7 +14,7 @@ public class AccountAccessMaskTest {
   public void testUniqueConstants() {
     Set<Integer> seen = new HashSet<>();
     for (AccountAccessMask next : AccountAccessMask.values()) {
-      Assert.assertFalse(seen.contains(next.getMaskValue()));
+      Assert.assertFalse("Duplicate mask: " + next.getMaskValue(), seen.contains(next.getMaskValue()));
       seen.add(next.getMaskValue());
     }
   }

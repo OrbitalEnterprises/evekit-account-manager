@@ -1,9 +1,6 @@
 package enterprises.orbital.evekit.model;
 
 import java.util.Arrays;
-import java.util.stream.Collectors;
-
-import static enterprises.orbital.evekit.model.ESISyncEndpoint.CHAR_ASSETS;
 
 public enum ESIScope {
 
@@ -80,11 +77,17 @@ public enum ESIScope {
   }
 
   public static ESIScope[] getCharScopes() {
-    return Arrays.stream(values()).filter(x -> x.name().startsWith("CHAR_")).collect(Collectors.toList()).toArray(new ESIScope[0]);
+    return Arrays.stream(values())
+                 .filter(x -> x.name()
+                               .startsWith("CHAR_"))
+                 .toArray(ESIScope[]::new);
   }
 
   public static ESIScope[] getCorpScopes() {
-    return Arrays.stream(values()).filter(x -> x.name().startsWith("CORP_")).collect(Collectors.toList()).toArray(new ESIScope[0]);
+    return Arrays.stream(values())
+                 .filter(x -> x.name()
+                               .startsWith("CORP_"))
+                 .toArray(ESIScope[]::new);
   }
 
 }
