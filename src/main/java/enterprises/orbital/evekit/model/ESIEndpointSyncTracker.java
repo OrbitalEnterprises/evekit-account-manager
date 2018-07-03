@@ -59,6 +59,9 @@ import java.util.logging.Logger;
         name = "ESIEndpointSyncTracker.getAllStartedUnfinished",
         query = "SELECT c FROM ESIEndpointSyncTracker c where c.syncStart <> -1 and c.syncEnd = -1"),
     @NamedQuery(
+        name = "ESIEndpointSyncTracker.getUnfinishedByAccount",
+        query = "SELECT c FROM ESIEndpointSyncTracker c where c.account = :account and c.syncEnd = -1 order by c.scheduled asc"),
+    @NamedQuery(
         name = "ESIEndpointSyncTracker.getAllUnfinished",
         query = "SELECT c FROM ESIEndpointSyncTracker c where c.syncEnd = -1"),
     @NamedQuery(
@@ -336,6 +339,32 @@ public class ESIEndpointSyncTracker {
       lck.unlock();
     }
   }
+
+  /**
+   * Get the list of all unfinished trackers for a given account.
+   *
+   * @return the list of all unfinished trackers ordered in increasing order by
+   * @throws IOException on any database error.
+   */
+  public static synchronized List<ESIEndpointSyncTracker> getAllUnfinishedTrackers(SynchronizedEveAccount account) throws IOException {
+    try {
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        TypedQuery<ESIEndpointSyncTracker> getter = EveKitUserAccountProvider.getFactory()
+                                                                                                             .getEntityManager()
+                                                                                                             .createNamedQuery(
+                                                                                                                 "ESIEndpointSyncTracker.getUnfinishedByAccount",
+                                                                                                                 ESIEndpointSyncTracker.class);
+                                        getter.setParameter("account", account);
+                                        return getter.getResultList();
+                                      });
+    } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
+      log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
+    }
+  }
+
 
   /**
    * Get the list of all unfinished trackers.

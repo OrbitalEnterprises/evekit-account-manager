@@ -97,6 +97,9 @@ import java.util.logging.Logger;
 public class SynchronizedEveAccount implements PersistentPropertyKey<String> {
   private static final Logger log = Logger.getLogger(SynchronizedEveAccount.class.getName());
 
+  // Max sync account name length
+  public static final int SYNC_ACCOUNT_NAME_MAX_LENGTH = 100;
+
   // Not configurable for now.
   private static final int TOKEN_LOCK_RETRY_ATTEMPTS = 3;
 
