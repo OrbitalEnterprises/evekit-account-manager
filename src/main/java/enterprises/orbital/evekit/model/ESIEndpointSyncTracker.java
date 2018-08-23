@@ -79,6 +79,9 @@ import java.util.logging.Logger;
     @NamedQuery(
         name = "ESIEndpointSyncTracker.getAllSiteHistory",
         query = "SELECT c FROM ESIEndpointSyncTracker c where c.syncEnd <> -1 and c.syncStart < :start order by c.syncStart desc"),
+    @NamedQuery(
+        name = "ESIEndpointSyncTracker.getAllHistoryByEndpoint",
+        query = "SELECT c FROM ESIEndpointSyncTracker c where c.syncEnd <> -1 and c.endpoint = :endpoint and c.syncStart < :start order by c.syncStart desc"),
 })
 @ApiModel(
     description = "ESI endpoint synchronization tracker")
@@ -619,6 +622,37 @@ public class ESIEndpointSyncTracker {
                                                                                                                  "ESIEndpointSyncTracker.getAllSiteHistory",
                                                                                                                  ESIEndpointSyncTracker.class);
                                         getter.setParameter("start", contid < 0 ? Long.MAX_VALUE : contid);
+                                        getter.setMaxResults(maxResults);
+                                        return getter.getResultList();
+                                      });
+    } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
+      log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
+    }
+  }
+
+  /**
+   * Retrieve ordered history of finished trackers for a given endpoints.  Retrieved items are ordered in
+   * descending order by start time.
+   *
+   * @param endpoint   target endpoint
+   * @param contid     the upper bound on tracker start time.
+   * @param maxResults the maximum number of trackers to retrieve.
+   * @return a list of finished trackers order in descending order by start time.
+   * @throws IOException on any database error.
+   */
+  public static List<ESIEndpointSyncTracker> getAllSiteHistory(ESISyncEndpoint endpoint, long contid, int maxResults) throws IOException {
+    try {
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        TypedQuery<ESIEndpointSyncTracker> getter = EveKitUserAccountProvider.getFactory()
+                                                                                                             .getEntityManager()
+                                                                                                             .createNamedQuery(
+                                                                                                                 "ESIEndpointSyncTracker.getAllHistoryByEndpoint",
+                                                                                                                 ESIEndpointSyncTracker.class);
+                                        getter.setParameter("start", contid < 0 ? Long.MAX_VALUE : contid);
+                                        getter.setParameter("endpoint", endpoint);
                                         getter.setMaxResults(maxResults);
                                         return getter.getResultList();
                                       });
