@@ -204,8 +204,9 @@ public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<Str
                                       .runTransaction(() -> {
                                         TypedQuery<EveKitUserAccount> getter = EveKitUserAccountProvider.getFactory()
                                                                                                         .getEntityManager()
-                                                                                                        .createNamedQuery("EveKitUserAccount.findByUid",
-                                                                                                                          EveKitUserAccount.class);
+                                                                                                        .createNamedQuery(
+                                                                                                            "EveKitUserAccount.findByUid",
+                                                                                                            EveKitUserAccount.class);
                                         getter.setParameter("uid", uid);
                                         try {
                                           return getter.getSingleResult();
@@ -215,6 +216,68 @@ public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<Str
                                       });
     } catch (Exception e) {
       if (e.getCause() instanceof UserNotFoundException) throw (UserNotFoundException) e.getCause();
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
+      log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
+    }
+  }
+
+  /**
+   * Remove the user account with the given id.  This action can only proceed if all synchronized accounts
+   * associated with the user have been deleted.  In addition to removing the user account, all authorization
+   * sources and user notifications will be removed.
+   *
+   * @param uid the ID of the user account to remove.
+   * @throws UserNotFoundException if no user with the given ID was found
+   * @throws IllegalStateException if the specified user still has attached synchronized accounts
+   * @throws IOException           on any database error
+   */
+  public static void removeAccount(
+      final long uid) throws UserNotFoundException, IllegalStateException, IOException {
+    try {
+      EveKitUserAccountProvider.getFactory()
+                               .runTransaction(() -> {
+                                 // Verify ok to delete
+                                 EveKitUserAccount target = EveKitUserAccount.getAccount(uid);
+                                 if (!SynchronizedEveAccount.getAllAccounts(target, true)
+                                                            .isEmpty()) {
+                                   throw new IllegalStateException();
+                                 }
+
+                                 // Remove any auth sources
+                                 for (EveKitUserAuthSource nextSource : EveKitUserAuthSource.getAllSources(target)) {
+                                   EveKitUserAccountProvider.getFactory()
+                                                            .getEntityManager()
+                                                            .remove(nextSource);
+                                 }
+
+                                 // Remove any notifications
+                                 long lastRemoved;
+                                 do {
+                                   lastRemoved = 0;
+                                   TypedQuery<EveKitUserNotification> query = EveKitUserAccountProvider.getFactory()
+                                                                                                       .getEntityManager()
+                                                                                                       .createQuery(
+                                                                                                           "SELECT c FROM EveKitUserNotification c where c.account = :owner",
+                                                                                                           EveKitUserNotification.class);
+                                   query.setParameter("owner", target);
+                                   query.setMaxResults(1000);
+                                   for (EveKitUserNotification next : query.getResultList()) {
+                                     EveKitUserAccountProvider.getFactory()
+                                                              .getEntityManager()
+                                                              .remove(next);
+                                     lastRemoved++;
+                                   }
+                                 } while (lastRemoved > 0);
+
+                                 // Finally, remove the account
+                                 EveKitUserAccountProvider.getFactory()
+                                                          .getEntityManager()
+                                                          .remove(target);
+                               });
+    } catch (Exception e) {
+      if (e.getCause() instanceof UserNotFoundException) throw (UserNotFoundException) e.getCause();
+      if (e.getCause() instanceof IllegalStateException) throw (IllegalStateException) e.getCause();
       if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
       throw new IOException(e.getCause());
@@ -257,8 +320,9 @@ public class EveKitUserAccount implements UserAccount, PersistentPropertyKey<Str
                                       .runTransaction(() -> {
                                         TypedQuery<EveKitUserAccount> getter = EveKitUserAccountProvider.getFactory()
                                                                                                         .getEntityManager()
-                                                                                                        .createNamedQuery("EveKitUserAccount.allAccounts",
-                                                                                                                          EveKitUserAccount.class);
+                                                                                                        .createNamedQuery(
+                                                                                                            "EveKitUserAccount.allAccounts",
+                                                                                                            EveKitUserAccount.class);
                                         return getter.getResultList();
                                       });
     } catch (Exception e) {
