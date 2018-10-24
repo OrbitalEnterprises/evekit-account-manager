@@ -114,10 +114,12 @@ public class EveKitUserNotification {
     return content;
   }
 
+  @SuppressWarnings("WeakerAccess")
   public long getReadTime() {
     return readTime;
   }
 
+  @SuppressWarnings("WeakerAccess")
   public boolean isTrash() {
     return trash;
   }
@@ -155,15 +157,15 @@ public class EveKitUserNotification {
   public static EveKitUserNotification makeNote(final EveKitUserAccount acct,
                                                 final String content) throws IOException {
     try {
-      return EveKitUserAccountProvider.getFactory()
-                                      .runTransaction(() -> {
-                                        EveKitUserNotification newNote = new EveKitUserNotification(acct,
-                                                                                                    OrbitalProperties.getCurrentTime(),
-                                                                                                    content);
-                                        return EveKitUserAccountProvider.getFactory()
-                                                                        .getEntityManager()
-                                                                        .merge(newNote);
-                                      });
+      return EveKitUserNoteProvider.getFactory()
+                                   .runTransaction(() -> {
+                                     EveKitUserNotification newNote = new EveKitUserNotification(acct,
+                                                                                                 OrbitalProperties.getCurrentTime(),
+                                                                                                 content);
+                                     return EveKitUserNoteProvider.getFactory()
+                                                                  .getEntityManager()
+                                                                  .merge(newNote);
+                                   });
     } catch (Exception e) {
       if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
@@ -172,23 +174,24 @@ public class EveKitUserNotification {
   }
 
 
+  @SuppressWarnings("WeakerAccess")
   public static EveKitUserNotification getNote(final EveKitUserAccount acct, final long noteID) throws IOException {
     try {
-      return EveKitUserAccountProvider.getFactory()
-                                      .runTransaction(() -> {
-                                        TypedQuery<EveKitUserNotification> getter = EveKitUserAccountProvider.getFactory()
-                                                                                                             .getEntityManager()
-                                                                                                             .createNamedQuery(
-                                                                                                                 "EveKitUserNotification.findByAcctAndID",
-                                                                                                                 EveKitUserNotification.class);
-                                        getter.setParameter("account", acct);
-                                        getter.setParameter("nid", noteID);
-                                        try {
-                                          return getter.getSingleResult();
-                                        } catch (NoResultException e) {
-                                          return null;
-                                        }
-                                      });
+      return EveKitUserNoteProvider.getFactory()
+                                   .runTransaction(() -> {
+                                     TypedQuery<EveKitUserNotification> getter = EveKitUserNoteProvider.getFactory()
+                                                                                                       .getEntityManager()
+                                                                                                       .createNamedQuery(
+                                                                                                           "EveKitUserNotification.findByAcctAndID",
+                                                                                                           EveKitUserNotification.class);
+                                     getter.setParameter("account", acct);
+                                     getter.setParameter("nid", noteID);
+                                     try {
+                                       return getter.getSingleResult();
+                                     } catch (NoResultException e) {
+                                       return null;
+                                     }
+                                   });
     } catch (Exception e) {
       if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
@@ -198,16 +201,16 @@ public class EveKitUserNotification {
 
   public static List<EveKitUserNotification> getAllNotes(final EveKitUserAccount acct) throws IOException {
     try {
-      return EveKitUserAccountProvider.getFactory()
-                                      .runTransaction(() -> {
-                                        TypedQuery<EveKitUserNotification> getter = EveKitUserAccountProvider.getFactory()
-                                                                                                             .getEntityManager()
-                                                                                                             .createNamedQuery(
-                                                                                                                 "EveKitUserNotification.allByAcct",
-                                                                                                                 EveKitUserNotification.class);
-                                        getter.setParameter("account", acct);
-                                        return getter.getResultList();
-                                      });
+      return EveKitUserNoteProvider.getFactory()
+                                   .runTransaction(() -> {
+                                     TypedQuery<EveKitUserNotification> getter = EveKitUserNoteProvider.getFactory()
+                                                                                                       .getEntityManager()
+                                                                                                       .createNamedQuery(
+                                                                                                           "EveKitUserNotification.allByAcct",
+                                                                                                           EveKitUserNotification.class);
+                                     getter.setParameter("account", acct);
+                                     return getter.getResultList();
+                                   });
     } catch (Exception e) {
       if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
@@ -218,17 +221,17 @@ public class EveKitUserNotification {
   public static EveKitUserNotification markNoteDeleted(final EveKitUserAccount acct,
                                                        final long nid) throws IOException {
     try {
-      return EveKitUserAccountProvider.getFactory()
-                                      .runTransaction(() -> {
-                                        EveKitUserNotification target = getNote(acct, nid);
-                                        if (target == null) {
-                                          throw new IOException("Target note does not exist");
-                                        }
-                                        target.trash = true;
-                                        return EveKitUserAccountProvider.getFactory()
-                                                                        .getEntityManager()
-                                                                        .merge(target);
-                                      });
+      return EveKitUserNoteProvider.getFactory()
+                                   .runTransaction(() -> {
+                                     EveKitUserNotification target = getNote(acct, nid);
+                                     if (target == null) {
+                                       throw new IOException("Target note does not exist");
+                                     }
+                                     target.trash = true;
+                                     return EveKitUserNoteProvider.getFactory()
+                                                                  .getEntityManager()
+                                                                  .merge(target);
+                                   });
     } catch (Exception e) {
       if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);
@@ -238,17 +241,17 @@ public class EveKitUserNotification {
 
   public static EveKitUserNotification markNoteRead(final EveKitUserAccount acct, final long nid) throws IOException {
     try {
-      return EveKitUserAccountProvider.getFactory()
-                                      .runTransaction(() -> {
-                                        EveKitUserNotification target = getNote(acct, nid);
-                                        if (target == null) {
-                                          throw new IOException("Target note does not exist");
-                                        }
-                                        target.readTime = OrbitalProperties.getCurrentTime();
-                                        return EveKitUserAccountProvider.getFactory()
-                                                                        .getEntityManager()
-                                                                        .merge(target);
-                                      });
+      return EveKitUserNoteProvider.getFactory()
+                                   .runTransaction(() -> {
+                                     EveKitUserNotification target = getNote(acct, nid);
+                                     if (target == null) {
+                                       throw new IOException("Target note does not exist");
+                                     }
+                                     target.readTime = OrbitalProperties.getCurrentTime();
+                                     return EveKitUserNoteProvider.getFactory()
+                                                                  .getEntityManager()
+                                                                  .merge(target);
+                                   });
     } catch (Exception e) {
       if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
       log.log(Level.SEVERE, "query error", e);

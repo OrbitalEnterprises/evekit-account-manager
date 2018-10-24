@@ -2,33 +2,31 @@ package enterprises.orbital.evekit.account;
 
 import enterprises.orbital.base.OrbitalProperties;
 import enterprises.orbital.db.ConnectionFactory;
-import enterprises.orbital.evekit.model.ESIEndpointSyncTracker;
 import enterprises.orbital.oauth.UserAccount;
 import enterprises.orbital.oauth.UserAccountProvider;
 import enterprises.orbital.oauth.UserAuthSource;
 
 import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
-public class EveKitUserAccountProvider implements UserAccountProvider {
-  private static final Logger log       = Logger.getLogger(EveKitUserAccountProvider.class.getName());
-
+/**
+ * Provider for user account information.  All account and model manipulation code uses this
+ * provider.
+ */
+@SuppressWarnings("WeakerAccess")
+public class EveKitUserAccountProvider extends ConnectionFactoryProvider implements UserAccountProvider {
   public static final String USER_ACCOUNT_PU_PROP    = "enterprises.orbital.evekit.account.persistence_unit";
   public static final String USER_ACCOUNT_PU_DEFAULT = "evekit-production";
 
+  public static String factoryName() {
+    return OrbitalProperties.getGlobalProperty(USER_ACCOUNT_PU_PROP, USER_ACCOUNT_PU_DEFAULT);
+  }
+
   public static ConnectionFactory getFactory() {
-    return ConnectionFactory.getFactory(OrbitalProperties.getGlobalProperty(USER_ACCOUNT_PU_PROP, USER_ACCOUNT_PU_DEFAULT));
+    return getFactory(factoryName());
   }
 
   public static <T> T update(T tracked) throws IOException {
-    try {
-      return getFactory().runTransaction(() -> getFactory().getEntityManager().merge(tracked));
-    } catch (Exception e) {
-      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
-      log.log(Level.SEVERE, "query error", e);
-      throw new IOException(e.getCause());
-    }
+    return update(factoryName(), tracked);
   }
 
   @Override
@@ -37,7 +35,7 @@ public class EveKitUserAccountProvider implements UserAccountProvider {
     try {
       user_id = Long.valueOf(uid);
     } catch (NumberFormatException e) {
-      user_id = 0;
+      // NOP
     }
     try {
       return EveKitUserAccount.getAccount(user_id);

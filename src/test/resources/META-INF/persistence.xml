@@ -18,11 +18,8 @@
         <class>enterprises.orbital.evekit.account.SynchronizedEveAccount</class>
         <class>enterprises.orbital.evekit.account.EveKitUserNotification</class>
         <class>enterprises.orbital.evekit.account.NewESIToken</class>
-        <class>enterprises.orbital.evekit.model.CapsuleerSyncTracker</class>
-        <class>enterprises.orbital.evekit.model.CorporationSyncTracker</class>
         <class>enterprises.orbital.evekit.model.ESIEndpointSyncTracker</class>
         <class>enterprises.orbital.evekit.model.ESIRefEndpointSyncTracker</class>
-        <class>enterprises.orbital.evekit.model.SyncTracker</class>
 
         <properties>
             <property name="javax.persistence.jdbc.driver" value="org.hsqldb.jdbcDriver"/>

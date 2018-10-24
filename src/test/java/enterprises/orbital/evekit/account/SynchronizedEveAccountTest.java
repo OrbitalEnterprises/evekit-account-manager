@@ -2,8 +2,6 @@ package enterprises.orbital.evekit.account;
 
 import enterprises.orbital.base.OrbitalProperties;
 import enterprises.orbital.evekit.TestBase;
-import enterprises.orbital.evekit.model.CapsuleerSyncTracker;
-import enterprises.orbital.evekit.model.CorporationSyncTracker;
 import enterprises.orbital.evekit.model.ESIEndpointSyncTracker;
 import enterprises.orbital.evekit.model.ESISyncEndpoint;
 import org.junit.Assert;
@@ -356,18 +354,13 @@ public class SynchronizedEveAccountTest extends TestBase {
 
     // Create items typically attached to a sync account: access keys and sync trackers
     int count = TestBase.getRandomInt(2000) + 2000;
+    ESISyncEndpoint[] endpoints = ESISyncEndpoint.values();
     for (int i = 0; i < count; i++) {
-      CorporationSyncTracker next = CorporationSyncTracker.createOrGetUnfinishedTracker(testAccount);
-      CorporationSyncTracker.finishTracker(next);
+      ESISyncEndpoint nextEndpoint = endpoints[TestBase.getRandomInt(endpoints.length)];
+      ESIEndpointSyncTracker next = ESIEndpointSyncTracker.getOrCreateUnfinishedTracker(testAccount, nextEndpoint, OrbitalProperties.getCurrentTime(), null);
+      ESIEndpointSyncTracker.finishTracker(next);
     }
-    System.out.println("Created CorporationSyncTrackers");
-
-    count = TestBase.getRandomInt(2000) + 2000;
-    for (int i = 0; i < count; i++) {
-      CapsuleerSyncTracker next = CapsuleerSyncTracker.createOrGetUnfinishedTracker(testAccount);
-      CapsuleerSyncTracker.finishTracker(next);
-    }
-    System.out.println("Created CapsuleerSyncTrackers");
+    System.out.println("Created ESIEndpointSyncTrackers");
 
     count = TestBase.getRandomInt(2000) + 2000;
     int valLen = ESISyncEndpoint.values().length;
@@ -400,7 +393,7 @@ public class SynchronizedEveAccountTest extends TestBase {
     final SynchronizedEveAccount check = testAccount;
     long remaining = EveKitUserAccountProvider.getFactory().runTransaction(() -> {
         TypedQuery<Long> query = EveKitUserAccountProvider.getFactory().getEntityManager()
-            .createQuery("SELECT count(c) FROM SyncTracker c where c.account= :acct", Long.class);
+            .createQuery("SELECT count(c) FROM ESIEndpointSyncTracker c where c.account= :acct", Long.class);
         query.setParameter("acct", check);
         return query.getSingleResult();
       });
