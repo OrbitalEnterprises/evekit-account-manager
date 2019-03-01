@@ -62,6 +62,9 @@ import java.util.logging.Logger;
         name = "SynchronizedAccountAccessKey.findAllByAcct",
         query = "SELECT c FROM SynchronizedAccountAccessKey c where c.account = :account"),
     @NamedQuery(
+        name = "SynchronizedAccountAccessKey.findAllSystem",
+        query = "SELECT c FROM SynchronizedAccountAccessKey c"),
+    @NamedQuery(
         name = "SynchronizedAccountAccessKey.findByAccessKey",
         query = "SELECT c FROM SynchronizedAccountAccessKey c where c.accessKey.value = :accesskey"),
 })
@@ -486,6 +489,29 @@ public class SynchronizedAccountAccessKey {
                                                                                                                    .getEntityManager()
                                                                                                                    .createNamedQuery("SynchronizedAccountAccessKey.findAllByAcct", SynchronizedAccountAccessKey.class);
                                         getter.setParameter("account", owner);
+                                        return getter.getResultList();
+                                      });
+    } catch (Exception e) {
+      if (e.getCause() instanceof IOException) throw (IOException) e.getCause();
+      log.log(Level.SEVERE, "query error", e);
+      throw new IOException(e.getCause());
+    }
+  }
+
+  /**
+   * Retrieve all access keys stored in the system.
+   *
+   * @return the list of all access keys.
+   * @throws IOException on any database error.
+   */
+  public static List<SynchronizedAccountAccessKey> getAllKeysOnServer()
+      throws IOException {
+    try {
+      return EveKitUserAccountProvider.getFactory()
+                                      .runTransaction(() -> {
+                                        TypedQuery<SynchronizedAccountAccessKey> getter = EveKitUserAccountProvider.getFactory()
+                                                                                                                   .getEntityManager()
+                                                                                                                   .createNamedQuery("SynchronizedAccountAccessKey.findAllSystem", SynchronizedAccountAccessKey.class);
                                         return getter.getResultList();
                                       });
     } catch (Exception e) {
