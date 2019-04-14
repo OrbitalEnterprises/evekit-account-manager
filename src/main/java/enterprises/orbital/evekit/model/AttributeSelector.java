@@ -205,6 +205,16 @@ public class AttributeSelector {
     }
   }
 
+  public static void addFirstLiveSelector(
+      StringBuilder builder,
+      String target,
+      long timestamp) {
+        builder.append(" AND ")
+               .append(target)
+               .append(".lifeStart >= ")
+               .append(timestamp);
+  }
+
   public static void addIntSelector(
       StringBuilder builder,
       String target,
